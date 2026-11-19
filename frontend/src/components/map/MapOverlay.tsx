@@ -185,7 +185,7 @@ export default function MapOverlay() {
           className="pointer-events-auto absolute -translate-x-1/2 -translate-y-full transition-transform duration-240 ease-glass active:scale-95"
           style={{ left: pin.x, top: pin.y }}
         >
-          <MarkPin kind={pin.kind} size={PIN_SIZE} />
+          <MarkPin kind={pin.kind} size={PIN_SIZE} pulse={pin.kind === 'alert'} />
         </button>
       ))}
 

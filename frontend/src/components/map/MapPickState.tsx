@@ -187,7 +187,8 @@ export default function MapPickState({ onChoose }: MapPickStateProps) {
       {pin ? (
         <div className="pointer-events-none absolute" style={{ left: pin.x, top: pin.y }} aria-hidden>
           <div className="-translate-x-1/2 -translate-y-full">
-            <MarkPin kind="alert" size={28} dual pulse />
+            {/* 自由落点用十字准星，不用警告三角：这里只是「即将标在这里」，不是告警 */}
+            <MarkPin kind="alert" glyph="free" size={28} dual pulse />
           </div>
         </div>
       ) : null}

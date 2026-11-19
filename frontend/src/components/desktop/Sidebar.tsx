@@ -1,4 +1,4 @@
-import { Search, Settings, Waypoints } from 'lucide-react'
+import { Search, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { useAuth } from '@/lib/auth'
 import { marks } from '@/lib/mock-marks'
@@ -17,9 +17,13 @@ export default function Sidebar() {
   return (
     <aside className="relative flex h-full w-[380px] shrink-0 flex-col rounded-r-[24px] bg-white/75 shadow-glass backdrop-blur-glass backdrop-saturate-glass">
       <header className="flex items-center gap-2.5 px-5 pt-5">
-        <span className="flex size-8 items-center justify-center rounded-[10px] bg-info text-white">
-          <Waypoints size={17} strokeWidth={1.9} />
-        </span>
+        {/* 国家管网标识：直接用官方红色徽标，不再用蓝色方底 + 抽象图标 */}
+        <img
+          src="/shape_logo.svg"
+          alt="国家管网"
+          className="h-8 w-auto shrink-0 select-none"
+          draggable={false}
+        />
         <div className="min-w-0">
           <h1 className="truncate text-[13px] font-semibold text-ink">
             国家管网 · 管道工标记

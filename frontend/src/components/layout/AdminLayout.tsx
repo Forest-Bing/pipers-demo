@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
-import { NavLink } from 'react-router'
+import { NavLink, useNavigate } from 'react-router'
 import {
   Bell,
   LayoutDashboard,
+  LogOut,
   MapPin,
   ScrollText,
   Search,
@@ -30,7 +31,13 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ breadcrumb, children, padded = true }: AdminLayoutProps) {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-canvas">
@@ -70,14 +77,25 @@ export function AdminLayout({ breadcrumb, children, padded = true }: AdminLayout
           ))}
         </nav>
 
-        <div className="mt-auto flex items-center gap-2 border-t border-card-line px-4 py-3">
-          <Avatar name={user?.name ?? '李国强'} size={28} tone="ink" />
-          <div className="min-w-0">
-            <p className="truncate text-[12px] font-medium text-ink">
-              {user?.name ?? '李国强'} · 管理员
-            </p>
-            <p className="truncate text-[10px] text-ink-2">系统管理</p>
+        <div className="mt-auto border-t border-card-line px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Avatar name={user?.name ?? '李国强'} size={28} tone="ink" />
+            <div className="min-w-0">
+              <p className="truncate text-[12px] font-medium text-ink">
+                {user?.name ?? '李国强'} · 管理员
+              </p>
+              <p className="truncate text-[10px] text-ink-2">系统管理</p>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-2.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-[8px] border border-hairline text-[12px] text-ink-2 transition-colors duration-240 hover:border-alert/40 hover:bg-alert/5 hover:text-alert"
+          >
+            <LogOut size={14} strokeWidth={1.8} />
+            退出登录
+          </button>
         </div>
       </aside>
 

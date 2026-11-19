@@ -71,10 +71,22 @@ export default {
         'spin-slow': {
           to: { transform: 'rotate(360deg)' },
         },
+        // 警告图钉内部的三角做轻微呼吸，让「告警」在原地被看见
+        'alert-pulse': {
+          '0%,100%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(1.22)', opacity: '0.72' },
+        },
+        // 图钉外的声呐环：向外扩散并淡出
+        'alert-ring': {
+          '0%': { transform: 'translate(-50%,-50%) scale(0.8)', opacity: '0.55' },
+          '100%': { transform: 'translate(-50%,-50%) scale(1.85)', opacity: '0' },
+        },
       },
       animation: {
         breathe: 'breathe 2.4s cubic-bezier(.32,.72,0,1) infinite',
         'spin-slow': 'spin-slow 1.6s linear infinite',
+        'alert-pulse': 'alert-pulse 1.6s ease-in-out infinite',
+        'alert-ring': 'alert-ring 1.9s cubic-bezier(.32,.72,0,1) infinite',
       },
     },
   },

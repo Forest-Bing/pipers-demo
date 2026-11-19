@@ -19,7 +19,7 @@ const STORAGE_KEY = 'pipe.session'
 interface AuthValue {
   user: User | null
   role: User['role'] | null
-  login: (phone: string) => User
+  login: (phone: string, role?: User['role']) => User
   logout: () => void
 }
 
@@ -40,8 +40,10 @@ function readStored(): User | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(readStored)
 
-  const login = useCallback((phone: string) => {
-    const next = phone === currentAdmin.phone ? currentAdmin : currentWorker
+  const login = useCallback((phone: string, role?: User['role']) => {
+    // 登录页的「用户 / 管理员」页签决定会话角色；不传则以手机号推断（兼容旧调用）
+    const asAdmin = role ? role === 'admin' : phone === currentAdmin.phone
+    const next = asAdmin ? currentAdmin : currentWorker
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ phone: next.phone }))
     setUser(next)
     return next

@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { Info, TriangleAlert, Waves } from 'lucide-react'
+import { Crosshair, Info, TriangleAlert, Waves } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { KeypointType, MarkKind } from '@/lib/mock/types'
 
@@ -62,20 +62,43 @@ interface MarkPinProps {
   dual?: boolean
   /** 脉冲环，用于落点预览 */
   pulse?: boolean
+  /**
+   * 覆盖图钉内的图形。
+   * `free` 用于「自由落点」这类不代表告警/信息类型的标记，用十字准星与两者区分；
+   * 不传则跟随 `kind`（警告三角 / 信息 i）。
+   */
+  glyph?: MarkKind | 'free'
   className?: string
 }
 
 /** 水滴形标记图钉，尖端指向坐标点 */
-export function MarkPin({ kind, size = 24, dual = false, pulse = false, className }: MarkPinProps) {
+export function MarkPin({
+  kind,
+  size = 24,
+  dual = false,
+  pulse = false,
+  glyph,
+  className,
+}: MarkPinProps) {
   const uid = useId().replace(/:/g, '')
   const color = kind === 'alert' ? '#FF3B30' : '#0A84FF'
   const height = Math.round((size * 32) / 24)
-  const Icon = kind === 'alert' ? TriangleAlert : Info
+  const mark = glyph ?? kind
+  const Icon = mark === 'alert' ? TriangleAlert : mark === 'info' ? Info : Crosshair
+  /** 只有「真正的警告标记」才做脉冲：自由落点不是告警，不该被误读成异常 */
+  const isAlert = mark === 'alert'
 
   return (
     <span className={cn('relative inline-flex flex-col items-center', className)} aria-hidden>
+      {/* 脉冲环：向外扩散的细描边，像声呐一圈圈打出去；不加负 z，否则会沉到地图底图下面 */}
       {pulse ? (
-        <i className="absolute left-1/2 top-1/2 -z-10 size-11 -translate-x-1/2 -translate-y-1/2 animate-breathe rounded-full bg-info/25" />
+        <i
+          className={cn(
+            'absolute left-1/2 -translate-x-1/2 -translate-y-1/2 animate-alert-ring rounded-full border-2',
+            kind === 'alert' && isAlert ? 'border-alert/55' : 'border-info/55',
+          )}
+          style={{ top: height * 0.375, width: size * 1.05, height: size * 1.05 }}
+        />
       ) : null}
       <span className="relative" style={{ width: size, height }}>
         <svg viewBox="0 0 24 32" width={size} height={height} className="block">
@@ -105,7 +128,11 @@ export function MarkPin({ kind, size = 24, dual = false, pulse = false, classNam
           className="absolute left-1/2 flex -translate-x-1/2 items-center justify-center text-white"
           style={{ top: size * 0.21, width: size * 0.5, height: size * 0.5 }}
         >
-          <Icon size={size * 0.42} strokeWidth={2.6} />
+          <Icon
+            size={size * 0.42}
+            strokeWidth={2.6}
+            className={isAlert ? 'animate-alert-pulse' : undefined}
+          />
         </span>
       </span>
     </span>
