@@ -1,4 +1,5 @@
 import MapCanvas from '@/components/map/MapCanvas'
+import MapPickState from '@/components/map/MapPickState'
 import SearchCapsule from '@/components/map/SearchCapsule'
 import StatusBar from '@/components/map/StatusBar'
 import MapControls from '@/components/map/MapControls'
@@ -12,6 +13,8 @@ export default function MapPageMobile({ showZoomHint = false }: { showZoomHint?:
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-canvas">
       <MapCanvas />
+      {/* 画板 4：长按拾取的状态浮层，DOM 顺序决定它压在底图之上、既有控件之下 */}
+      <MapPickState />
       <SearchCapsule />
       <StatusBar />
       <MapControls />

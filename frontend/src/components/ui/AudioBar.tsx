@@ -14,10 +14,18 @@ interface AudioBarProps {
   /** 录音中状态：显示红点 + 计时，可删除 */
   recording?: boolean
   onDelete?: () => void
+  /** 播放/录制按钮配色。录制态用 alert，播放态用 info */
+  tone?: 'info' | 'alert'
   className?: string
 }
 
-export function AudioBar({ duration, recording = false, onDelete, className }: AudioBarProps) {
+export function AudioBar({
+  duration,
+  recording = false,
+  onDelete,
+  tone = 'info',
+  className,
+}: AudioBarProps) {
   const [playing, setPlaying] = useState(false)
 
   return (
@@ -31,7 +39,10 @@ export function AudioBar({ duration, recording = false, onDelete, className }: A
         type="button"
         aria-label={playing ? '暂停' : '播放'}
         onClick={() => setPlaying((p) => !p)}
-        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-info text-white transition-transform duration-240 ease-glass active:scale-95"
+        className={cn(
+          'flex size-8 shrink-0 items-center justify-center rounded-full text-white transition-transform duration-240 ease-glass active:scale-95',
+          tone === 'alert' ? 'bg-alert' : 'bg-info',
+        )}
       >
         {playing ? (
           <Pause size={13} strokeWidth={2.4} />

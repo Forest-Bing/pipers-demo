@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import MapPage from '@/pages/map/MapPage'
 import LoginPage from '@/pages/LoginPage'
 import MePage from '@/pages/MePage'
+import NewMarkPage from '@/pages/mark/NewMarkPage'
 import ComingSoon from '@/pages/ComingSoon'
 import AdminPlaceholder from '@/pages/admin/AdminPlaceholder'
 import { useAuth } from '@/lib/auth'
@@ -44,7 +45,7 @@ export const router = createBrowserRouter([
     path: '/mark/new',
     element: (
       <Guard area="user">
-        <ComingSoon title="新建标记" />
+        <NewMarkPage />
       </Guard>
     ),
   },

@@ -48,12 +48,15 @@ frontend/src/
 │   │   ├── MobileShell.tsx       # 手机页外壳（顶栏三槽 + 安全区）
 │   │   └── AdminLayout.tsx       # 后台壳（240px 导航 + 顶栏）
 │   ├── map/                      # 已完成：地图页 9 个组件 + ZoomHint（画板 3）
+│   │                             # 另有 LandingPointSheet（画板 4）+ MapPickState（长按状态机）
 │   └── desktop/Sidebar.tsx       # 已完成：桌面侧栏
 └── pages/
     ├── map/
     │   ├── MapPage.tsx           # 断点壳：lg 互斥两套
     │   ├── MapPageMobile.tsx     # 画板 2 ✅
     │   └── MapPageDesktop.tsx    # 画板 9 ✅
+    ├── mark/
+    │   └── NewMarkPage.tsx       # 画板 5 ✅
     ├── LoginPage.tsx             # 画板 1 ✅
     ├── MePage.tsx                # 画板 8 ✅
     └── admin/
@@ -187,7 +190,7 @@ formatCount(n: number): string         // '99+'（>99）
 ```
 /login                 LoginPage           ✅
 /                      MapPage             ✅
-/mark/new              新建标记            ❌ B2
+/mark/new              新建标记            ✅ B2
 /mark/new/keypoint     关键点选择器        ❌ B3
 /marks/:id             标记详情            ❌ B4
 /me                    MePage              ✅
@@ -456,14 +459,41 @@ formatCount(n: number): string         // '99+'（>99）
 | P1b | 18 个 UI 基元 + token | ✅ |
 | P1c | 布局壳 + 路由守卫 | ✅ |
 | P2 | 登录 / 我的 / 缩放提示 | ✅ |
-| B1 | 长按落点 Sheet（画板 4） | ❌ 待做 |
-| B2 | 新建标记表单（画板 5） | ❌ 待做 |
+| B1 | 长按落点 Sheet（画板 4） | ✅ |
+| B2 | 新建标记表单（画板 5） | ✅ |
 | B3 | 关键点选择器（画板 7） | ❌ 待做 |
 | B4 | 标记详情（画板 6） | ❌ 待做 |
 | B5 | 用户管理 + 新建用户（画板 10、12） | ❌ 待做 |
 | B6 | 标记管理 + 抽屉（画板 11） | ❌ 待做 |
 
-**下一批从这里开始：B1**
+**下一批从这里开始：B3**
+
+### 7.1 B1 / B2 落地记录（2026-11-19）
+
+新增文件：
+
+| 文件 | 作用 |
+| --- | --- |
+| `src/components/map/LandingPointSheet.tsx` | 画板 4 面板本体，导出 `LandingChoice` 联合类型；`geoFail` 控制定位失败态 |
+| `src/components/map/MapPickState.tsx` | 长按拾取状态机：480ms 长按→双色引脚 + 面板；`?pick=1` 直接开、`?geo=fail` 失败态 |
+| `src/pages/mark/NewMarkPage.tsx` | 画板 5 表单，路由 `/mark/new` |
+
+改动文件：
+
+- `MapPageMobile.tsx`：在 `MapCanvas` 之后插入一行 `<MapPickState />`，布局与层级顺序未动
+- `routes.tsx`：`/mark/new` 由 `ComingSoon` 换成 `NewMarkPage`
+- `components/ui/Overlay.tsx`：`Sheet` 增加 `scrim?: boolean`（默认 true，地图落点面板传 false）
+- `components/ui/AudioBar.tsx`：增加 `tone?: 'info' | 'alert'`（录音态用红按钮）
+- `index.css`：补 `prefers-reduced-motion` 降级
+
+验收实测（375×812 无头截图 + DOM 断言）：
+
+- 落点面板三行高度 57px（≥56），点击热区覆盖整行
+- 提交链路：`/?pick=1` →「使用此位置」→ `/mark/new?lng=106.2721&lat=37.5447&src=picked` →「提交标记」→ `/` + toast「标记已提交」
+- 长按层派发 `pointerdown` 480ms 后：面板出现、双色引脚出现
+- 描述计数器读实际长度 33/500（示例文案本身 33 字，不是 38）
+
+截图：`docs/design-ref/build-b1-pick.png`、`build-b1-geofail.png`、`build-b2-form.png`、`build-b2-form-lower.png`
 
 ---
 

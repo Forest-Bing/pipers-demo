@@ -37,6 +37,12 @@ interface BaseOverlayProps {
   className?: string
 }
 
+/** Sheet 额外选项：地图落点面板不压暗地图，直接浮在底图上 */
+interface SheetProps extends BaseOverlayProps {
+  /** 是否铺 scrim 遮罩，默认 true。地图页的落点面板传 false */
+  scrim?: boolean
+}
+
 function Portal({ children }: { children: ReactNode }) {
   if (typeof document === 'undefined') return null
   return createPortal(children, document.body)
@@ -48,27 +54,30 @@ export function Sheet({
   onClose,
   children,
   dismissOnScrim = true,
+  scrim = true,
   className,
-}: BaseOverlayProps) {
+}: SheetProps) {
   const visible = useDelayedVisible(open)
   useEscape(open, onClose)
   if (!open) return null
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-40">
-        <div
-          className={cn(
-            'absolute inset-0 bg-scrim transition-opacity duration-320 ease-glass',
-            visible ? 'opacity-100' : 'opacity-0',
-          )}
-          onClick={dismissOnScrim ? onClose : undefined}
-        />
+      <div className={cn('fixed inset-0 z-40', !scrim && 'pointer-events-none')}>
+        {scrim ? (
+          <div
+            className={cn(
+              'absolute inset-0 bg-scrim transition-opacity duration-320 ease-glass',
+              visible ? 'opacity-100' : 'opacity-0',
+            )}
+            onClick={dismissOnScrim ? onClose : undefined}
+          />
+        ) : null}
         <section
           role="dialog"
           aria-modal="true"
           className={cn(
-            'glass-sheet absolute inset-x-0 bottom-0 px-4 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2',
+            'glass-sheet pointer-events-auto absolute inset-x-0 bottom-0 px-4 pb-[calc(12px_+_env(safe-area-inset-bottom))] pt-2',
             'transition-transform duration-320 ease-glass',
             visible ? 'translate-y-0' : 'translate-y-full',
             className,
