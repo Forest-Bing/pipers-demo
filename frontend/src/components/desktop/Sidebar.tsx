@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router'
 import { useMemo } from 'react'
 import { useAuth } from '@/lib/auth'
 import { useStore } from '@/lib/store'
+import { useKindFilter } from '@/lib/map-runtime'
+import type { KindFilter } from '@/lib/mock/types'
 import { MAP_CENTER } from '@/lib/amap'
 import { distanceMeters } from '@/lib/geo'
 import { cn } from '@/lib/cn'
@@ -11,25 +13,26 @@ export default function Sidebar() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { marks } = useStore()
+  // 与地图图钉共用同一个筛选状态：点胶囊时侧栏列表和地图覆盖物一起变
+  const [filter, setFilter] = useKindFilter()
 
-  /** 「附近标记」按直线距离从近到远 */
-  const nearby = useMemo(
-    () =>
-      [...marks].sort(
-        (a, b) =>
-          distanceMeters(MAP_CENTER, [a.lng, a.lat]) - distanceMeters(MAP_CENTER, [b.lng, b.lat]),
-      ),
-    [marks],
-  )
+  const alertCount = marks.filter((m) => m.kind === 'alert').length
+  const infoCount = marks.length - alertCount
 
-  const filters = useMemo(
-    () => [
-      { key: 'all', label: '全部', count: marks.length, active: true },
-      { key: 'alert', label: '警告', count: marks.filter((m) => m.kind === 'alert').length, dot: 'bg-alert' },
-      { key: 'info', label: '信息', count: marks.filter((m) => m.kind === 'info').length, dot: 'bg-info' },
-    ],
-    [marks],
-  )
+  /** 「附近标记」按直线距离从近到远，再按当前筛选收起不需要的类型 */
+  const nearby = useMemo(() => {
+    const sorted = [...marks].sort(
+      (a, b) =>
+        distanceMeters(MAP_CENTER, [a.lng, a.lat]) - distanceMeters(MAP_CENTER, [b.lng, b.lat]),
+    )
+    return filter === 'all' ? sorted : sorted.filter((m) => m.kind === filter)
+  }, [marks, filter])
+
+  const filters: { key: KindFilter; label: string; count: number; dot?: string }[] = [
+    { key: 'all', label: '全部', count: marks.length },
+    { key: 'alert', label: '警告', count: alertCount, dot: 'bg-alert' },
+    { key: 'info', label: '信息', count: infoCount, dot: 'bg-info' },
+  ]
 
   return (
     <aside className="relative flex h-full w-[380px] shrink-0 flex-col rounded-r-[24px] bg-white/75 shadow-glass backdrop-blur-glass backdrop-saturate-glass">
@@ -53,29 +56,43 @@ export default function Sidebar() {
       </div>
 
       <div className="mt-3 flex items-center gap-2 px-5">
-        {filters.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            className={cn(
-              'flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px]',
-              f.active
-                ? 'bg-ink text-white'
-                : 'border border-hairline bg-white text-ink',
-            )}
-          >
-            {f.dot ? <i className={cn('size-1.5 rounded-full', f.dot)} /> : null}
-            {f.label} {f.count}
-          </button>
-        ))}
+        {filters.map((f) => {
+          const active = filter === f.key
+          return (
+            <button
+              key={f.key}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setFilter(f.key)}
+              className={cn(
+                'flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] transition-colors duration-240',
+                active
+                  ? 'bg-ink text-white'
+                  : 'border border-hairline bg-white text-ink hover:border-ink/25',
+              )}
+            >
+              {f.dot ? <i className={cn('size-1.5 rounded-full', f.dot)} /> : null}
+              {f.label} {f.count}
+            </button>
+          )
+        })}
       </div>
 
       <div className="mb-1 mt-4 flex items-baseline px-5">
-        <span className="text-[12px] text-ink-2">附近标记</span>
-        <span className="ml-auto text-[11px] text-ink-2">共 {marks.length} 条 · 按距离</span>
+        <span className="text-[12px] text-ink-2">
+          {filter === 'all' ? '附近标记' : filter === 'alert' ? '附近警告' : '附近信息'}
+        </span>
+        <span className="ml-auto text-[11px] text-ink-2">
+          共 {nearby.length} 条 · 按距离
+        </span>
       </div>
 
       <ul className="min-h-0 flex-1 overflow-y-auto px-5">
+        {nearby.length === 0 ? (
+          <li className="py-10 text-center text-[12px] text-ink-2">
+            当前筛选下没有标记
+          </li>
+        ) : null}
         {nearby.map((mark) => (
           <li
             key={mark.id}
