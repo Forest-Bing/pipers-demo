@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>设计稿 / 实现 叠加比对</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #f2f2f7;
+        color: #1c1c1e;
+      }
+      h1 {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      p.hint {
+        margin: 0 0 20px;
+        font-size: 12px;
+        color: #8e8e93;
+      }
+      .row {
+        display: flex;
+        gap: 40px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      .item {
+        background: #fff;
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+      }
+      .item h2 {
+        font-size: 13px;
+        font-weight: 600;
+        margin: 0 0 12px;
+      }
+      .stage {
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #fff;
+      }
+      .stage img {
+        display: block;
+        width: 100%;
+      }
+      .stage img.top {
+        position: absolute;
+        inset: 0;
+        opacity: 0.5;
+      }
+      input[type='range'] {
+        width: 100%;
+        margin-top: 12px;
+      }
+      .m {
+        width: 375px;
+      }
+      .d {
+        width: 720px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>设计稿 / 实现 叠加比对</h1>
+    <p class="hint">
+      拖动滑杆调整实现图的不透明度，两张图错位时会以重影形式立刻暴露。上层为实现图。
+    </p>
+
+    <div class="row">
+      <div class="item m">
+        <h2>手机端 375 × 812</h2>
+        <div class="stage">
+          <img src="ref-mobile-375.png" alt="设计稿" />
+          <img id="mTop" class="top" src="build-mobile.png" alt="实现" />
+        </div>
+        <input id="mRange" type="range" min="0" max="100" value="50" />
+      </div>
+
+      <div class="item d">
+        <h2>桌面端 1440 × 900（等比缩放到 720 宽）</h2>
+        <div class="stage">
+          <img src="ref-desktop-1440.png" alt="设计稿" />
+          <img id="dTop" class="top" src="build-desktop.png" alt="实现" />
+        </div>
+        <input id="dRange" type="range" min="0" max="100" value="50" />
+      </div>
+    </div>
+
+    <script>
+      const bind = (rangeId, topId) => {
+        const r = document.getElementById(rangeId)
+        const t = document.getElementById(topId)
+        const sync = () => {
+          t.style.opacity = String(r.value / 100)
+        }
+        r.addEventListener('input', sync)
+        sync()
+      }
+      bind('mRange', 'mTop')
+      bind('dRange', 'dTop')
+    </script>
+  </body>
+</html>
