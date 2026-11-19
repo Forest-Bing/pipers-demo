@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router'
+import { createBrowserRouter, Navigate, useLocation } from 'react-router'
 import type { ReactNode } from 'react'
 import MapPage from '@/pages/map/MapPage'
 import LoginPage from '@/pages/LoginPage'
@@ -20,7 +20,12 @@ import { useAuth } from '@/lib/auth'
  */
 function Guard({ area, children }: { area: 'user' | 'admin'; children: ReactNode }) {
   const { role } = useAuth()
-  if (!role) return <Navigate to="/login" replace />
+  const location = useLocation()
+  // 未登录：一律先去登录页，并记住原本想去的地址，登录后送回去
+  if (!role) {
+    const from = `${location.pathname}${location.search}`
+    return <Navigate to="/login" replace state={{ from: from === '/' ? null : from }} />
+  }
   if (area === 'admin' && role !== 'admin') return <Navigate to="/" replace />
   if (area === 'user' && role === 'admin') return <Navigate to="/admin/users" replace />
   return <>{children}</>

@@ -16,7 +16,7 @@ import type { User, UserRole } from './mock/types'
  *
  * - 校验手机号 + 密码（mock 库里的明文密码），管理员 / 普通用户用登录页的两个页签区分；
  * - 会话写 localStorage（PRD 决策 D6：token 存 localStorage，安全基线刻意从简）；
- * - 首次打开浏览器且没有会话时，默认以种子里的巡线员身份进入，方便直接看地图演示。
+ * - 没有会话就是未登录：首次打开一律落在登录页，不会自动代入任何演示身份。
  *
  * TODO: 真实实现替换为 POST /api/auth/login，并保存服务端签发的 token。
  */
@@ -56,16 +56,14 @@ function readSession(): StoredSession | null {
 }
 
 function readStoredUser(): User | null {
-  const db = loadDb()
   const session = readSession()
-  if (session) {
-    if (!session.userId) return null
-    const found = db.users.find((u) => u.id === session.userId)
-    return found ? strip(found) : null
-  }
-  // 首次进入演示：默认巡线员，登录页仍可切换角色
-  const worker = db.users.find((u) => u.id === 'u-zhang') ?? db.users[0]
-  return worker ? strip(worker) : null
+  // 没有任何会话（首次打开 / 已退出）→ 未登录，交给路由守卫送去登录页
+  if (!session || !session.userId) return null
+  const db = loadDb()
+  const found = db.users.find((u) => u.id === session.userId)
+  // 账号被删或被停用：会话作废，回到登录页
+  if (!found || found.status === 'disabled') return null
+  return strip(found)
 }
 
 function persist(user: User | null, token?: string) {

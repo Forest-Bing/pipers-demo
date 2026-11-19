@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { Eye, EyeOff, ShieldCheck, UserRound } from 'lucide-react'
 import { Button, SegmentedControl, TextField } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
@@ -11,6 +11,7 @@ type LoginMode = 'user' | 'admin'
 /** 画板 1「登录」。无注册、无微信、无忘记密码、无验证码（PRD 硬约束） */
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
   const [mode, setMode] = useState<LoginMode>('user')
   const [phone, setPhone] = useState('')
@@ -52,7 +53,11 @@ export default function LoginPage() {
     try {
       // TODO 已就位：换成真实接口后此处逻辑不变，mock API 内部走 localStorage
       const user = await login(phone, password, isAdmin ? 'admin' : 'user')
-      navigate(user.role === 'admin' ? '/admin/users' : '/', { replace: true })
+      // 被守卫拦下来的地址：角色对得上就送回去，否则回各自的首页
+      const from = (location.state as { from?: string } | null)?.from
+      const canReturn =
+        !!from && (from.startsWith('/admin') ? user.role === 'admin' : user.role !== 'admin')
+      navigate(canReturn ? from : user.role === 'admin' ? '/admin/users' : '/', { replace: true })
     } catch (err) {
       const message = err instanceof ApiError ? err.message : '登录失败，请稍后重试'
       setFormError(message)
