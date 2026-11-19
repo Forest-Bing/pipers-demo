@@ -43,7 +43,7 @@ frontend/src/
 │   │   └── pipelines.ts          # 1 条管段
 │   └── store.tsx                 # 内存态 store（新建标记、停用用户等）
 ├── components/
-│   ├── ui/                       # 18 个基元，见 §4
+│   ├── ui/                       # 22 个基元，见 §4
 │   ├── layout/
 │   │   ├── MobileShell.tsx       # 手机页外壳（顶栏三槽 + 安全区）
 │   │   └── AdminLayout.tsx       # 后台壳（240px 导航 + 顶栏）
@@ -56,12 +56,15 @@ frontend/src/
     │   ├── MapPageMobile.tsx     # 画板 2 ✅
     │   └── MapPageDesktop.tsx    # 画板 9 ✅
     ├── mark/
-    │   └── NewMarkPage.tsx       # 画板 5 ✅
+    │   ├── NewMarkPage.tsx       # 画板 5 ✅（含 ?edit= 编辑态）
+    │   ├── KeypointPickerPage.tsx# 画板 7 ✅
+    │   └── MarkDetailPage.tsx    # 画板 6 ✅
     ├── LoginPage.tsx             # 画板 1 ✅
     ├── MePage.tsx                # 画板 8 ✅
-    └── admin/
-        ├── UsersPage.tsx         # 画板 10 + 12 ❌
-        └── MarksPage.tsx         # 画板 11 ❌
+    ├── admin/
+    │   ├── UsersPage.tsx         # 画板 10 ✅（弹窗见 components/admin/UserFormModal）
+    │   └── MarksPage.tsx         # 画板 11 ✅
+    └── ...
 ```
 
 ### 1.2 设计 token（`frontend/tailwind.config.js`，**已配好，直接用**）
@@ -190,12 +193,12 @@ formatCount(n: number): string         // '99+'（>99）
 ```
 /login                 LoginPage           ✅
 /                      MapPage             ✅
-/mark/new              新建标记            ✅ B2
-/mark/new/keypoint     关键点选择器        ❌ B3
-/marks/:id             标记详情            ❌ B4
+/mark/new              新建标记            ✅ B2（?edit=<id> 为编辑态）
+/mark/new/keypoint     关键点选择器        ✅ B3
+/marks/:id             标记详情            ✅ B4
 /me                    MePage              ✅
-/admin/users           UsersPage           ❌ B5
-/admin/marks           MarksPage           ❌ B6
+/admin/users           UsersPage           ✅ B5
+/admin/marks           MarksPage           ✅ B6
 ```
 
 `useAuth()` 返回 `{ user, role, login, logout }`，存 localStorage（key `pipe.session`）。
@@ -461,13 +464,12 @@ formatCount(n: number): string         // '99+'（>99）
 | P2 | 登录 / 我的 / 缩放提示 | ✅ |
 | B1 | 长按落点 Sheet（画板 4） | ✅ |
 | B2 | 新建标记表单（画板 5） | ✅ |
-| B3 | 关键点选择器（画板 7） | ❌ 待做 |
-| B4 | 标记详情（画板 6） | ❌ 待做 |
-| B5 | 用户管理 + 新建用户（画板 10、12） | ❌ 待做 |
-| B6 | 标记管理 + 抽屉（画板 11） | ❌ 待做 |
+| B3 | 关键点选择器（画板 7） | ✅ |
+| B4 | 标记详情（画板 6） | ✅ |
+| B5 | 用户管理 + 新建用户（画板 10、12） | ✅ |
+| B6 | 标记管理 + 抽屉（画板 11） | ✅ |
 
-**下一批从这里开始：B3**
-
+**7 屏全部完成，本轮批次表已清空。** 剩余工作见 §7.3。
 ### 7.1 B1 / B2 落地记录（2026-11-19）
 
 新增文件：
@@ -495,6 +497,45 @@ formatCount(n: number): string         // '99+'（>99）
 
 截图：`docs/design-ref/build-b1-pick.png`、`build-b1-geofail.png`、`build-b2-form.png`、`build-b2-form-lower.png`
 
+### 7.2 B3 – B6 落地记录（2026-11-19 第二批）
+
+新增文件：
+
+| 文件 | 作用 |
+| --- | --- |
+| `src/pages/mark/KeypointPickerPage.tsx` | 画板 7，路由 `/mark/new/keypoint` |
+| `src/pages/mark/MarkDetailPage.tsx` | 画板 6，路由 `/marks/:id` |
+| `src/pages/admin/UsersPage.tsx` | 画板 10，路由 `/admin/users` |
+| `src/pages/admin/MarksPage.tsx` | 画板 11，路由 `/admin/marks` |
+| `src/components/admin/UserFormModal.tsx` | 画板 12，新增与编辑共用 |
+
+基元扩展（均向后兼容）：
+
+- `Field.tsx` 新增 `SearchField`（glass / plain 两态）；`Select` 补下拉箭头；**校验红字从标题行改到输入框下方**
+- 新增 `RadioGroup`（角色二选一）
+- `store.tsx` 新增 `updateMark`（编辑回写）
+
+改动文件：
+
+- `routes.tsx`：`/mark/new/keypoint`、`/marks/:id`、`/admin/users`、`/admin/marks` 全部换成真实页面
+- `NewMarkPage.tsx`：支持 `?edit=<id>` 编辑态（预填、标题「编辑标记」、隐藏存为草稿、保存后回详情页）
+- `UsersPage` 表格斑马纹用 `bg-canvas`（实测 `bg-canvas/40~70` 在 1440 宽下肉眼几乎不可辨）
+
+验收实测（DOM 断言，脚本见 `docs/ui-notes.md` §8 的方法说明）：
+
+- 关键点选择器 14 行，点首行 → `/mark/new?keypointId=kp-1&lng=106.2718&lat=37.5421`，表单描述已预填
+- `/marks/m1` →「编辑」→ `/mark/new?edit=m1`，描述预填 33 字 → 改文案 →「提交标记」→ 回 `/marks/m1` 且新文案已生效
+- `/admin/users`：「新增用户」弹窗可开，填姓名/手机号 →「创建账号」→ 表格首行出现新用户；自己那行 `title="不能停用自己"`
+- `/admin/marks`：「查看」开抽屉，橙色警示文案在，删除 → 二次确认 → 抽屉关闭，列表 7 → 6 条
+
+截图：`build-b3-keypoint.png`、`build-b4-detail.png`、`build-b4-detail-lower.png`、`build-b5-users.png`、`build-b5-modal.png`、`build-b6-marks.png`、`build-b6-drawer.png`
+
+### 7.3 仍未做（不属批次表，来自 ui-notes 的待办）
+
+- 高德 JS API 接入（替换 `MapCanvas` 内部，删 `MapBackdrop`）
+- mock → 真实接口（各页已按 §3 留 `// TODO:` 注释）
+- `MePage.tsx` 的安全区 padding 旧写法（见 `docs/ui-notes.md` §7）
+
 ---
 
 ## 8. 截图与比对（必须按这个来，否则会误判）
@@ -505,17 +546,41 @@ Chrome 无头 `--screenshot` 直出页面会**丢弃带 `backdrop-filter` 的合
 
 ### 8.2 正确做法
 
-在 `frontend/public/` 放一个 iframe 容器页：
+在 `frontend/public/` 放一个 iframe 容器页（B3–B6 用过的成品版本，可直接复用）：
 
 ```html
 <!doctype html><html><head><meta charset="utf-8">
 <style>html,body{margin:0;padding:0;overflow:hidden}iframe{display:block;border:0}</style>
 </head><body><script>
 const p = new URLSearchParams(location.search)
+const seed = p.get('seed')            // 角色种子：13900001001=管理员，不传=巡线员
+if (seed) localStorage.setItem('pipe.session', JSON.stringify({ phone: seed }))
 const f = document.createElement('iframe')
-f.src = '/'
+f.src = p.get('p') || '/'
 f.width = p.get('w') || '375'
 f.height = p.get('h') || '812'
+f.addEventListener('load', () => {
+  const doc = f.contentDocument
+  // 关键：无头截图的虚拟时间不推进 CSS 过渡，弹层会停在 translate-y-full
+  const style = doc.createElement('style')
+  style.textContent = '*,*::before,*::after{transition:none!important}'
+  doc.head.appendChild(style)
+  setTimeout(() => {
+    // scroll=N 滚到指定位置；click=文字 点第一个匹配按钮（开弹窗/抽屉）
+    const sc = p.get('scroll')
+    if (sc) {
+      const el = [...doc.querySelectorAll('div, section, main, ul, article')].find(
+        (d) => getComputedStyle(d).overflowY === 'auto' && d.scrollHeight > d.clientHeight)
+      if (el) el.scrollTop = Number(sc)
+    }
+    const ck = p.get('click')
+    if (ck) {
+      const t = [...doc.querySelectorAll('button, a')].filter((b) => b.textContent.includes(ck))
+      const nth = Number(p.get('nth') || 0)
+      if (t[nth]) t[nth].click()
+    }
+  }, 1200)
+})
 document.body.appendChild(f)
 </script></body></html>
 ```
@@ -524,21 +589,23 @@ document.body.appendChild(f)
 
 ```bash
 CH="/c/Program Files/Google/Chrome/Application/chrome.exe"
-"$CH" --headless=new --disable-gpu --hide-scrollbars \
-  --user-data-dir="C:/Users/Bing/AppData/Local/Temp/shot-$(date +%s)" \
+"$CH" --headless=new --disable-gpu --hide-scrollbars --run-all-compositor-stages-before-draw \
+  --user-data-dir="C:/Users/Bing/AppData/Local/Temp/shot-$RANDOM$RANDOM" \
   --window-size=375,812 \
   --screenshot="D:/CODE/Pipe/FullStack/docs/design-ref/build-xxx.png" \
-  --virtual-time-budget=9000 \
-  "http://localhost:5173/_shot.html?w=375&h=812"
+  --virtual-time-budget=16000 \
+  "http://localhost:5173/_shot.html?w=375&h=812&p=/marks/m1"
 ```
 
-三个要点：
+要点：
 - **必须走 iframe**，不能直接指 `localhost:5173/`
 - **每次换一个 `--user-data-dir`**，否则 Chrome 读缓存返回旧页面
+- **必须注入 `transition:none`**，否则弹层/抽屉截到的是过渡第一帧（现象：`getBoundingClientRect` 读到 `y=812 bottom=1061`，看着像布局 bug）
 - 截完删掉 `public/_shot.html`，别提交
 
-**切角色截图**：`_shot.html` 支持 `seed` 参数写入 localStorage。管理员页用
-`?_shot.html?w=1440&h=900&p=/admin/users&seed=13900001001`，巡线员页不带 seed 即可（默认巡线员）。
+**切角色**：`seed=13900001001` 为管理员（后台页必须带，否则被守卫弹回 `/`），巡线员页不传。
+
+**几何/交互断言别用离屏 iframe**：`left:-9999px` 的 iframe 会被 Chrome 节流定时器，读到的几何是过期的。要断言就用可见 iframe + `--dump-dom` 把结果写进 `<pre>` 再 grep；比截图靠谱得多，B3–B6 的验收都是这么做的。
 
 ### 8.3 比对
 

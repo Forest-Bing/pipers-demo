@@ -1,11 +1,13 @@
 export { Button, IconButton, TextButton } from './Button'
 export type { ButtonProps, IconButtonProps } from './Button'
 
-export { TextField, TextArea, Select } from './Field'
-export type { TextFieldProps, TextAreaProps, SelectProps } from './Field'
+export { TextField, TextArea, Select, SearchField } from './Field'
+export type { TextFieldProps, TextAreaProps, SelectProps, SearchFieldProps } from './Field'
 
 export { SegmentedControl } from './SegmentedControl'
 export type { SegmentedOption } from './SegmentedControl'
+
+export { RadioGroup } from './RadioGroup'
 
 export { Badge, StatusDot } from './Badge'
 export { Avatar } from './Avatar'

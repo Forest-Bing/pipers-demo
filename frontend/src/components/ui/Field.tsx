@@ -5,6 +5,7 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react'
+import { ChevronDown, Search } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 const FIELD_BASE =
@@ -22,11 +23,10 @@ interface LabelProps {
   label?: ReactNode
   required?: boolean
   hint?: string
-  error?: string
   trailing?: ReactNode
 }
 
-function FieldLabel({ htmlFor, label, required, hint, error, trailing }: LabelProps) {
+function FieldLabel({ htmlFor, label, required, hint, trailing }: LabelProps) {
   if (!label && !trailing) return null
   return (
     <div className="mb-1.5 flex items-baseline gap-1.5">
@@ -37,12 +37,18 @@ function FieldLabel({ htmlFor, label, required, hint, error, trailing }: LabelPr
         </label>
       ) : null}
       {trailing ? <span className="ml-auto text-[12px] text-ink-2">{trailing}</span> : null}
-      {error ? (
-        <span className="ml-auto text-[12px] text-alert">{error}</span>
-      ) : hint ? (
-        <span className="ml-auto text-[12px] text-ink-2">{hint}</span>
-      ) : null}
+      {hint ? <span className="ml-auto text-[12px] text-ink-2">{hint}</span> : null}
     </div>
+  )
+}
+
+/** 字段下方的红字校验信息（规格要求出现在字段下方，不是标题行） */
+function FieldError({ id, children }: { id: string; children?: string }) {
+  if (!children) return null
+  return (
+    <p id={id} className="mt-1 text-[12px] text-alert">
+      {children}
+    </p>
   )
 }
 
@@ -73,15 +79,16 @@ export function TextField({
         label={label}
         required={required}
         hint={hint}
-        error={error}
         trailing={trailing}
       />
       <input
         id={fieldId}
         className={cn(FIELD_BASE, borderOf(error), 'h-11', className)}
         aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${fieldId}-error` : undefined}
         {...rest}
       />
+      <FieldError id={`${fieldId}-error`}>{error}</FieldError>
     </div>
   )
 }
@@ -121,13 +128,7 @@ export function TextArea({
 
   return (
     <div className="w-full">
-      <FieldLabel
-        htmlFor={fieldId}
-        label={label}
-        required={required}
-        hint={hint}
-        error={error}
-      />
+      <FieldLabel htmlFor={fieldId} label={label} required={required} hint={hint} />
       <textarea
         id={fieldId}
         value={value}
@@ -140,6 +141,7 @@ export function TextArea({
         )}
         {...rest}
       />
+      <FieldError id={`${fieldId}-error`}>{error}</FieldError>
       {maxLength ? (
         <div
           className={cn(
@@ -160,9 +162,7 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   hint?: string
   error?: string
   options: { value: string; label: string }[]
-}
-
-export function Select({
+}export function Select({
   label,
   required,
   hint,
@@ -176,24 +176,59 @@ export function Select({
   const fieldId = id ?? autoId
   return (
     <div className="w-full">
-      <FieldLabel
-        htmlFor={fieldId}
-        label={label}
-        required={required}
-        hint={hint}
-        error={error}
-      />
-      <select
-        id={fieldId}
-        className={cn(FIELD_BASE, borderOf(error), 'h-11 pr-8 appearance-none', className)}
-        {...rest}
-      >
+      <FieldLabel htmlFor={fieldId} label={label} required={required} hint={hint} />
+      <div className="relative">
+        <select
+          id={fieldId}
+          className={cn(FIELD_BASE, borderOf(error), 'h-11 appearance-none pr-9', className)}
+          {...rest}
+        >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
-          </option>
-        ))}
-      </select>
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          size={15}
+          strokeWidth={2}
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-2"
+        />
+      </div>
+      <FieldError id={`${fieldId}-error`}>{error}</FieldError>
+    </div>
+  )
+}
+
+export interface SearchFieldProps extends InputHTMLAttributes<HTMLInputElement> {
+  /** glass 用于地图/手机浮层，plain 用于后台筛选行 */
+  tone?: 'glass' | 'plain'
+}
+
+/** 带放大镜的搜索输入框，两种底色：玻璃（手机端）/ 白底描边（后台） */
+export function SearchField({ tone = 'plain', className, ...rest }: SearchFieldProps) {
+  return (
+    <div className="relative w-full">
+      <Search
+        size={tone === 'glass' ? 17 : 15}
+        strokeWidth={1.9}
+        className={cn(
+          'pointer-events-none absolute top-1/2 -translate-y-1/2 text-ink-2',
+          tone === 'glass' ? 'left-4' : 'left-3',
+        )}
+      />
+      <input
+        type="search"
+        className={cn(
+          'w-full text-ink placeholder:text-ink-2 focus:outline-none',
+          '[&::-webkit-search-cancel-button]:appearance-none',
+          tone === 'glass'
+            ? 'glass h-12 pl-11 pr-4 text-[14px]'
+            : 'h-9 rounded-control border border-card-line bg-white pl-9 pr-3 text-[12px] focus:border-info',
+          className,
+        )}
+        {...rest}
+      />
     </div>
   )
 }

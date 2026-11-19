@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { ImagePlus, MapPin, Mic, Plus } from 'lucide-react'
 import { MobileShell, NavText } from '@/components/layout/MobileShell'
@@ -35,41 +35,47 @@ const DEFAULT_AUDIO = 37
 const DEFAULT_LNG = 106.2718
 const DEFAULT_LAT = 37.5421
 
-/** 画板 5「添加标记 · 表单」。路由 /mark/new，可带 ?lng=&lat=&src=&keypointId= */
+/** 画板 5「添加标记 · 表单」。路由 /mark/new，可带 ?lng=&lat=&src=&keypointId=；带 ?edit=<id> 时为编辑态 */
 export default function NewMarkPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const { addMark, toast } = useStore()
+  const { marks, addMark, updateMark, toast } = useStore()
   const { user } = useAuth()
+
+  const editId = params.get('edit') ?? undefined
+  const editing = editId ? marks.find((m) => m.id === editId) : undefined
 
   // TODO: GET /api/keypoints/:id 校验并补齐关键点信息
   const [keypointId, setKeypointId] = useState<string | undefined>(
-    params.get('keypointId') ?? undefined,
+    editing?.keypointId ?? params.get('keypointId') ?? undefined,
   )
-  const [lng, setLng] = useState(() => Number(params.get('lng')) || DEFAULT_LNG)
-  const [lat, setLat] = useState(() => Number(params.get('lat')) || DEFAULT_LAT)
+  const [lng, setLng] = useState(() => editing?.lng ?? (Number(params.get('lng')) || DEFAULT_LNG))
+  const [lat, setLat] = useState(() => editing?.lat ?? (Number(params.get('lat')) || DEFAULT_LAT))
   const [src, setSrc] = useState<'current' | 'picked'>(() =>
     params.get('src') === 'current' ? 'current' : 'picked',
   )
 
-  const [kind, setKind] = useState<MarkKind>('alert')
-  const [desc, setDesc] = useState(DEFAULT_DESC)
-  const [photos, setPhotos] = useState<string[]>(INITIAL_PHOTOS)
-  const [audio, setAudio] = useState<number | null>(DEFAULT_AUDIO)
+  const [kind, setKind] = useState<MarkKind>(editing?.kind ?? 'alert')
+  const [desc, setDesc] = useState(editing?.description ?? DEFAULT_DESC)
+  const [photos, setPhotos] = useState<string[]>(editing?.photos ?? INITIAL_PHOTOS)
+  const [audio, setAudio] = useState<number | null>(
+    editing ? (editing.audio?.duration ?? null) : DEFAULT_AUDIO,
+  )
   const [sheetOpen, setSheetOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  /** 打开表单时的快照，用于「是否有改动」判断 */
+  const initial = useRef({ kind, desc, photoCount: photos.length, audio, lng, lat })
   const keypoint = findKeypoint(keypointId)
   const canSubmit = desc.trim().length > 0 && !submitting
   const dirty =
-    desc !== DEFAULT_DESC ||
-    photos.length !== INITIAL_PHOTOS.length ||
-    kind !== 'alert' ||
-    audio !== DEFAULT_AUDIO ||
-    Boolean(keypointId) ||
-    lng !== DEFAULT_LNG ||
-    lat !== DEFAULT_LAT
+    kind !== initial.current.kind ||
+    desc !== initial.current.desc ||
+    photos.length !== initial.current.photoCount ||
+    audio !== initial.current.audio ||
+    lng !== initial.current.lng ||
+    lat !== initial.current.lat
 
   const positionTitle = keypoint
     ? `关键点 ${keypoint.code} · ${KEYPOINT_TYPE_LABEL[keypoint.type]}`
@@ -86,22 +92,36 @@ export default function NewMarkPage() {
     if (!canSubmit) return
     setSubmitting(true)
     const now = new Date()
-    const mark: Mark = {
-      id: `m-${now.getTime()}`,
+    const base = {
       kind,
       lng,
       lat,
       title: keypoint ? `${keypoint.code} · ${KEYPOINT_TYPE_LABEL[keypoint.type]}` : '手动落点',
       description: desc.trim(),
+      keypointId: keypoint?.id,
+      photos,
+      audio: audio === null ? undefined : { duration: audio },
+    }
+
+    // 编辑态：只回写内容字段，创建人与创建时间保持不变
+    if (editing) {
+      // TODO: PATCH /api/marks/:id
+      updateMark(editing.id, base)
+      toast('标记已保存', 'success')
+      setSubmitting(false)
+      navigate(`/marks/${editing.id}`)
+      return
+    }
+
+    const mark: Mark = {
+      id: `m-${now.getTime()}`,
+      ...base,
       distance: '0m',
       time: formatTime(now),
-      keypointId: keypoint?.id,
       creatorId: user?.id ?? 'u-zhang',
       creatorName: user?.name ?? '张建国',
       creatorPosition: user?.position ?? '巡线工',
       createdAt: now.toISOString(),
-      photos,
-      audio: audio === null ? undefined : { duration: audio },
     }
     // TODO: POST /api/marks，成功后用服务端返回的 id 替换本地 id
     addMark(mark)
@@ -115,9 +135,17 @@ export default function NewMarkPage() {
     navigate('/')
   }
 
+  const leave = () => {
+    if (editing) {
+      navigate(`/marks/${editing.id}`)
+      return
+    }
+    navigate('/')
+  }
+
   const requestCancel = () => {
     if (!dirty) {
-      navigate('/')
+      leave()
       return
     }
     setConfirmOpen(true)
@@ -137,7 +165,7 @@ export default function NewMarkPage() {
 
   return (
     <MobileShell
-      title="新建标记"
+      title={editing ? '编辑标记' : '新建标记'}
       left={
         <NavText tone="ink" onClick={requestCancel}>
           取消
@@ -250,14 +278,16 @@ export default function NewMarkPage() {
 
       {/* 底部固定玻璃操作条 */}
       <div className="glass-bar fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-hairline px-4 pb-[calc(12px_+_env(safe-area-inset-bottom))] pt-3">
-        <TextButton tone="muted" onClick={saveDraft} className="shrink-0">
-          存为草稿
-        </TextButton>
+        {editing ? null : (
+          <TextButton tone="muted" onClick={saveDraft} className="shrink-0">
+            存为草稿
+          </TextButton>
+        )}
         <Button
           onClick={submit}
           disabled={!canSubmit}
           loading={submitting}
-          className="ml-auto h-12 w-[60%] rounded-[14px]"
+          className={cn('ml-auto h-12 rounded-[14px]', editing ? 'w-full' : 'w-[60%]')}
         >
           提交标记
         </Button>
@@ -287,7 +317,7 @@ export default function NewMarkPage() {
               size="sm"
               onClick={() => {
                 setConfirmOpen(false)
-                navigate('/')
+                leave()
               }}
             >
               放弃

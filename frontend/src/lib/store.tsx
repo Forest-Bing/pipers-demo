@@ -26,6 +26,7 @@ interface StoreValue {
   marks: Mark[]
   users: User[]
   addMark: (mark: Mark) => void
+  updateMark: (id: string, patch: Partial<Mark>) => void
   removeMark: (id: string) => void
   addUser: (user: User) => void
   updateUser: (id: string, patch: Partial<User>) => void
@@ -62,6 +63,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setMarks((list) => [mark, ...list])
   }, [])
 
+  const updateMark = useCallback((id: string, patch: Partial<Mark>) => {
+    setMarks((list) => list.map((m) => (m.id === id ? { ...m, ...patch } : m)))
+  }, [])
+
   const removeMark = useCallback((id: string) => {
     setMarks((list) => list.filter((m) => m.id !== id))
   }, [])
@@ -79,6 +84,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       marks,
       users,
       addMark,
+      updateMark,
       removeMark,
       addUser,
       updateUser,
@@ -86,7 +92,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       toast,
       dismissToast,
     }),
-    [marks, users, addMark, removeMark, addUser, updateUser, toasts, toast, dismissToast],
+    [marks, users, addMark, updateMark, removeMark, addUser, updateUser, toasts, toast, dismissToast],
   )
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

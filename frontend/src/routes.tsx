@@ -4,8 +4,11 @@ import MapPage from '@/pages/map/MapPage'
 import LoginPage from '@/pages/LoginPage'
 import MePage from '@/pages/MePage'
 import NewMarkPage from '@/pages/mark/NewMarkPage'
-import ComingSoon from '@/pages/ComingSoon'
+import KeypointPickerPage from '@/pages/mark/KeypointPickerPage'
+import MarkDetailPage from '@/pages/mark/MarkDetailPage'
 import AdminPlaceholder from '@/pages/admin/AdminPlaceholder'
+import UsersPage from '@/pages/admin/UsersPage'
+import MarksPage from '@/pages/admin/MarksPage'
 import { useAuth } from '@/lib/auth'
 
 /**
@@ -53,7 +56,7 @@ export const router = createBrowserRouter([
     path: '/mark/new/keypoint',
     element: (
       <Guard area="user">
-        <ComingSoon title="选择关键点" />
+        <KeypointPickerPage />
       </Guard>
     ),
   },
@@ -61,7 +64,7 @@ export const router = createBrowserRouter([
     path: '/marks/:id',
     element: (
       <Guard area="user">
-        <ComingSoon title="标记详情" />
+        <MarkDetailPage />
       </Guard>
     ),
   },
@@ -75,7 +78,7 @@ export const router = createBrowserRouter([
     path: '/admin/users',
     element: (
       <Guard area="admin">
-        <AdminPlaceholder title="用户管理" breadcrumb={['系统管理', '用户管理']} />
+        <UsersPage />
       </Guard>
     ),
   },
@@ -83,7 +86,7 @@ export const router = createBrowserRouter([
     path: '/admin/marks',
     element: (
       <Guard area="admin">
-        <AdminPlaceholder title="标记管理" breadcrumb={['系统管理', '标记管理']} />
+        <MarksPage />
       </Guard>
     ),
   },
