@@ -1,4 +1,6 @@
 import { Search, Settings, Waypoints } from 'lucide-react'
+import { useNavigate } from 'react-router'
+import { useAuth } from '@/lib/auth'
 import { marks } from '@/lib/mock-marks'
 import { cn } from '@/lib/cn'
 
@@ -9,6 +11,9 @@ const filters = [
 ]
 
 export default function Sidebar() {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+
   return (
     <aside className="relative flex h-full w-[380px] shrink-0 flex-col rounded-r-[24px] bg-white/75 shadow-glass backdrop-blur-glass backdrop-saturate-glass">
       <header className="flex items-center gap-2.5 px-5 pt-5">
@@ -85,10 +90,12 @@ export default function Sidebar() {
 
       <footer className="flex items-center gap-2 border-t border-hairline px-5 py-3">
         <span className="flex size-7 items-center justify-center rounded-full bg-info/10 text-[11px] font-medium text-info">
-          张
+          {(user?.name ?? '张建国').slice(0, 1)}
         </span>
         <div className="min-w-0">
-          <p className="truncate text-[12px] text-ink">张建国 · 巡线工</p>
+          <p className="truncate text-[12px] text-ink">
+            {user?.name ?? '张建国'} · {user?.position ?? '巡线工'}
+          </p>
           <p className="flex items-center gap-1 text-[10px] text-ink-2">
             <i className="size-1 rounded-full bg-success" />
             已同步
@@ -97,6 +104,7 @@ export default function Sidebar() {
         <button
           type="button"
           aria-label="设置"
+          onClick={() => navigate('/me')}
           className="ml-auto text-ink-2 hover:text-ink transition-colors duration-240"
         >
           <Settings size={16} strokeWidth={1.8} />

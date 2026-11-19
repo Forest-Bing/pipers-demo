@@ -1,5 +1,7 @@
 import { ChevronDown, Layers, Locate, Minus, Plus } from 'lucide-react'
+import { useNavigate } from 'react-router'
 import MapCanvas from '@/components/map/MapCanvas'
+import ZoomHint from '@/components/map/ZoomHint'
 import Sidebar from '@/components/desktop/Sidebar'
 
 const mapControls = [
@@ -10,13 +12,17 @@ const mapControls = [
 ]
 
 /** 桌面端地图主界面（设计稿画板 2:219，1440 × 900） */
-export default function MapPageDesktop() {
+export default function MapPageDesktop({ showZoomHint = false }: { showZoomHint?: boolean }) {
+  const navigate = useNavigate()
+
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-canvas">
       <Sidebar />
 
       <main className="relative min-w-0 flex-1">
         <MapCanvas />
+
+        {showZoomHint ? <ZoomHint /> : null}
 
         <button
           type="button"
@@ -42,6 +48,7 @@ export default function MapPageDesktop() {
 
           <button
             type="button"
+            onClick={() => navigate('/mark/new')}
             className="flex h-10 items-center gap-1.5 rounded-full bg-info px-4 text-[13px] font-medium text-white shadow-fab transition-transform duration-240 ease-glass active:scale-95"
           >
             <Plus size={15} strokeWidth={2.2} />

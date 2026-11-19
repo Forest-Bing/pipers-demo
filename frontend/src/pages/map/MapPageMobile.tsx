@@ -5,9 +5,10 @@ import MapControls from '@/components/map/MapControls'
 import Fab from '@/components/map/Fab'
 import SyncPill from '@/components/map/SyncPill'
 import MarkSheet from '@/components/map/MarkSheet'
+import ZoomHint from '@/components/map/ZoomHint'
 
 /** 手机端地图主界面（设计稿画板 2:1，375 × 812） */
-export default function MapPageMobile() {
+export default function MapPageMobile({ showZoomHint = false }: { showZoomHint?: boolean }) {
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-canvas">
       <MapCanvas />
@@ -17,6 +18,7 @@ export default function MapPageMobile() {
       <Fab />
       <SyncPill />
       <MarkSheet />
+      {showZoomHint ? <ZoomHint /> : null}
     </div>
   )
 }
