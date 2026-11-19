@@ -31,6 +31,7 @@ frontend/src/
 ├── main.tsx                      # createBrowserRouter + RouterProvider
 ├── routes.tsx                    # 全量路由 + 角色守卫
 ├── index.css                     # @tailwind 三段 + @layer base/components
+├── env.d.ts                      # 高德全局类型 + VITE_* 环境变量
 ├── lib/
 │   ├── cn.ts                     # clsx + tailwind-merge
 │   ├── format.ts                 # 时间/距离/手机号/计数格式化
@@ -41,13 +42,15 @@ frontend/src/
 │   │   ├── keypoints.ts          # 14 条关键点
 │   │   ├── marks.ts              # 7 条标记（含 marks / markCounts 导出）
 │   │   └── pipelines.ts          # 1 条管段
-│   └── store.tsx                 # 内存态 store（新建标记、停用用户等）
+│   ├── store.tsx                 # 内存态 store（新建标记、停用用户等）
+│   ├── amap.ts                   # 高德加载入口（single-flight）+ locate()
+│   └── map-runtime.ts            # 地图实例 / 选点模式的外部 store
 ├── components/
 │   ├── ui/                       # 22 个基元，见 §4
 │   ├── layout/
 │   │   ├── MobileShell.tsx       # 手机页外壳（顶栏三槽 + 安全区）
 │   │   └── AdminLayout.tsx       # 后台壳（240px 导航 + 顶栏）
-│   ├── map/                      # 已完成：地图页 9 个组件 + ZoomHint（画板 3）
+│   ├── map/                      # 地图页 10 个组件 + ZoomHint（画板 3），含 MapOverlay
 │   │                             # 另有 LandingPointSheet（画板 4）+ MapPickState（长按状态机）
 │   └── desktop/Sidebar.tsx       # 已完成：桌面侧栏
 └── pages/
@@ -530,9 +533,83 @@ formatCount(n: number): string         // '99+'（>99）
 
 截图：`build-b3-keypoint.png`、`build-b4-detail.png`、`build-b4-detail-lower.png`、`build-b5-users.png`、`build-b5-modal.png`、`build-b6-marks.png`、`build-b6-drawer.png`
 
-### 7.3 仍未做（不属批次表，来自 ui-notes 的待办）
+### 7.3 高德地图接入（2026-11-19）
 
-- 高德 JS API 接入（替换 `MapCanvas` 内部，删 `MapBackdrop`）
+新增：
+
+| 文件 | 作用 |
+| --- | --- |
+| `frontend/.env.example` | `VITE_AMAP_KEY` / `VITE_AMAP_SECURITY_CODE` / `VITE_AMAP_STYLE_ID` |
+| `src/env.d.ts` | 引入 `@amap/amap-jsapi-types`，补 `ImportMetaEnv`、`window._AMapSecurityConfig`、`AMap.Geolocation`（类型包不含插件） |
+| `src/lib/amap.ts` | 唯一加载入口：securityJsCode → single-flight `AMapLoader.load({ version: '2.0' })`；`locate()`；`MAP_CENTER`/`MAP_ZOOM` |
+| `src/lib/map-runtime.ts` | 地图实例与选点模式的外部 store（`useSyncExternalStore`），避免在页面里包 Provider |
+
+改动：
+
+- `MapCanvas`：`new AMap.Map` + `viewMode: '2D'` + 卸载 `destroy()`；`MapBackdrop` 转为**降级底图**（无 Key 时显示，就绪后淡出）
+- `MapPickState`：`toLngLat` 改走 `containerToLngLat`（GCJ-02，6 位小数），无地图时保留假投影；拾取层默认 `pointer-events: none`，**选点模式下才接管**；引脚改为按经纬度 `lngLatToContainer` 反查，并订阅 `mapmove/zoomchange` 跟随地图
+- `MapControls`：缩放/定位接真实地图，新增「选点」按钮（第 5 个）
+- `MapPageDesktop`：定位/缩放接真实地图（无选点按钮）
+- `LandingPointSheet`：「使用当前位置」改用 `AMap.Geolocation`，失败时本地切到红字失败态；无 SDK 时保留 900ms 演示行为
+
+验收（无 Key 降级路径，DOM 断言全通过）：拾取层 `pointer-events:none` → 点「选点」变 `auto` → 长按 620ms 出面板与引脚（`E 106.2715, N 37.5455`）→「使用此位置」→ `/mark/new?lng=106.2715`；`?pick=1` 开门板、`?geo=fail` 出红字。
+
+**真图验收（Key 已填，2026-11-19 23:0x）**：
+
+| 检查项 | 结果 |
+| --- | --- |
+| SDK 脚本 / `window.AMap` | `script[src*=webapi.amap.com]` 存在，`typeof AMap === 'object'` |
+| 挂载 | `#map-canvas` 内 1 个 `canvas.amap-layer`，尺寸 375×812 |
+| 降级底图 | `MapBackdrop` 包裹层 `opacity: 0`（淡出，保留 DOM 便于失败回退） |
+| 真实投影 | 同一像素在不同缩放下的经纬度不同，且 `?lng=&lat=` 带 6 位小数 |
+| 缩放 | 15→16 后同距两点的经度差 0.007700 → 0.003900，比值 1.97（≈2，正确） |
+| logo 遮挡 | `.amap-logo` 计算值 `bottom: 246px`，不再压住底部卡片 |
+
+已知限制：**无头 Chrome 截图里高德不渲染文字注记**（地名/路名），路网与色块正常。加 `--disable-gpu`、开 GPU、换北京中心均复现，判断是 headless 下文字图层的限制，需在有头浏览器确认。
+
+改动补充：`setZoom(z, true)` 改为立即生效（带动画时落点换算会读到中间帧）；`index.css` 末尾把高德 logo/版权抬到卡片上沿。
+
+### 7.4 地图覆盖物（2026-11-19）
+
+新增 `src/components/map/MapOverlay.tsx`，用 **React 叠加层**而不是 `AMap.Marker`：图钉复用 `MarkPin`（红/蓝双色规则不用再实现一遍），像素由 `lngLatToContainer` 算出。
+
+| 图层 | 实现 | 交互 |
+| --- | --- | --- |
+| 关键点（14 条） | `zoom >= 15` 画独立图标（`KeypointIcon` 三型）；`zoom < 15` 按 **72px 屏幕网格**聚合成 `ClusterBubble` 计数 | 单点 → toast 编号+名称+类型；聚合 → `setZoom(16)` + 居中到该格 |
+| 标记（7 条） | `MarkPin` size 28，锚点为图钉尖端 | 点击 → `/marks/:id` |
+| 当前位置 | `CurrentLocationDot`，`locate()` 成功后写入 `map-runtime` | — |
+
+支撑改动：
+
+- `map-runtime` 新增 `viewVersion`（`notifyViewChange` + rAF 合并，`useMapTick`）、`mapSize`（`setMapSize`/`useMapSize`）、`currentLocation`、`clearMapInstance`
+- `MapCanvas` 的地图事件（`mapmove`/`zoomchange`/`moveend`/`zoomend`/`resize`/`complete`）触发 `notifyViewChange`
+
+**修掉的两个真问题：**
+
+1. **断点壳的双地图实例**。`MapPage` 是「两套布局共存 + CSS 互斥」，`display:none` 那套也挂载 `MapCanvas`，且后创建、把模块级实例覆盖成隐藏容器（0×0）。表现：覆盖物全空、投影错乱。改法：`MapCanvas` 等容器**有尺寸才创建地图**，`ResizeObserver` 上报尺寸并顺便把「当前实例」交还给可见那套。
+2. **`map.getSize()` / `getContainer().clientWidth` 实测返回 0**（DOM 已是 375×812）。不依赖高德 API，改为 `ResizeObserver` 自测 + 下一帧 + 60ms 定时各兜底一次。
+
+验收（DOM 断言 + 真实浏览器）：
+
+| 检查项 | 结果 |
+| --- | --- |
+| 地图实例 | `#map-canvas` 内 canvas 1 个（修复前 2 个） |
+| 图钉数 | zoom 15、375 宽时视口内 5 个，`aria-label` 形如「标记 JMZ-0421 · 3# 阀室」 |
+| 投影 | `JMZ-0421`（即地图中心）落在 `left:188px / top:406px`，与 375×812 的中心 (187.5, 406) 一致 |
+| 跟随 | 合成拖拽后图钉 `left/top` 变化（`pinsMoved=true`） |
+| 聚合 | 真实浏览器缩小到 ~12 级出现「2」「3」「2」三个白色气泡；点「3」→ 放大到 16 并展开为独立图标 |
+| 点图钉 | → `/marks/m5`（JMZ-0436 · 加密桩，K13+120 标识桩倾斜） |
+
+已知限制 / 待定：
+
+- **标记图钉不做聚合**。缩到 13 级以下时 7 个图钉会叠在一起（PRD D9 只对关键点提了聚合要求）。如果现场当天标记较多，建议同样套一层网格聚合。
+- 贴边的图钉/圆点会被容器裁掉一半（地图类产品的常态，未做特殊处理）。
+- 无头截图必须靠 `sync()` 里的 60ms 定时兜底才能拿到尺寸（`--virtual-time-budget` 不推进 rAF）。
+
+### 7.5 仍未做
+
+- 高德自定义地图样式 ID（`VITE_AMAP_STYLE_ID`）待控制台调色（当前用默认样式）
+- 管道线图层未画（mock 只有 `pipelineId`，没有几何数据）
 - mock → 真实接口（各页已按 §3 留 `// TODO:` 注释）
 - `MePage.tsx` 的安全区 padding 旧写法（见 `docs/ui-notes.md` §7）
 

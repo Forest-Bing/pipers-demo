@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronRight, Landmark, Loader2, LocateFixed, MapPin } from 'lucide-react'
 import { Sheet, TextButton } from '@/components/ui'
 import { formatLngLat } from '@/lib/format'
+import { locate } from '@/lib/amap'
+import { useMapInstance } from '@/lib/map-runtime'
 import { cn } from '@/lib/cn'
 
 /**
@@ -31,8 +33,12 @@ export default function LandingPointSheet({
   onClose,
   onChoose,
 }: LandingPointSheetProps) {
+  const map = useMapInstance()
   const [locating, setLocating] = useState(false)
+  /** 真实定位失败的本地态：与 `?geo=fail` 的演示态共用同一套红字样式 */
+  const [failed, setFailed] = useState(false)
   const timer = useRef<number | null>(null)
+  const blocked = geoFail || failed
 
   const clearTimer = () => {
     if (timer.current !== null) {
@@ -43,22 +49,38 @@ export default function LandingPointSheet({
 
   useEffect(() => clearTimer, [])
 
-  // 关闭时清掉定位中状态，下次打开回到初始态
+  // 关闭时清掉定位中/失败状态，下次打开回到初始态
   useEffect(() => {
     if (!open) {
       clearTimer()
       setLocating(false)
+      setFailed(false)
     }
   }, [open])
 
-  const pickCurrent = () => {
-    if (geoFail || locating) return
+  const pickCurrent = async () => {
+    if (blocked || locating) return
     setLocating(true)
-    // TODO: 接高德后改为 navigator.geolocation / AMap.Geolocation 真实定位
-    timer.current = window.setTimeout(() => {
-      setLocating(false)
-      onChoose({ kind: 'current', lng, lat })
-    }, 900)
+
+    // 没有 SDK（未配 Key）时保持原来的演示行为：假定位 900ms 后用面板上的坐标
+    if (!window.AMap?.Geolocation) {
+      const point = { lng, lat }
+      timer.current = window.setTimeout(() => {
+        setLocating(false)
+        onChoose({ kind: 'current', ...point })
+      }, 900)
+      return
+    }
+
+    const point = await locate()
+    setLocating(false)
+    if (!point) {
+      setFailed(true)
+      return
+    }
+    map?.setCenter([point.lng, point.lat])
+    map?.setZoom(17)
+    onChoose({ kind: 'current', ...point })
   }
 
   return (
@@ -76,11 +98,11 @@ export default function LandingPointSheet({
             <button
               type="button"
               onClick={pickCurrent}
-              disabled={geoFail}
+              disabled={blocked}
               className={cn(
                 'flex min-h-[56px] w-full items-center gap-3 py-2.5 text-left',
                 'transition-colors duration-240',
-                geoFail ? 'cursor-not-allowed' : 'active:bg-ink/[0.03]',
+                blocked ? 'cursor-not-allowed' : 'active:bg-ink/[0.03]',
               )}
             >
               <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-info/10 text-info">
@@ -93,10 +115,10 @@ export default function LandingPointSheet({
                 <span
                   className={cn(
                     'mt-0.5 block text-[12px] leading-tight',
-                    geoFail ? 'text-alert' : 'text-ink-2',
+                    blocked ? 'text-alert' : 'text-ink-2',
                   )}
                 >
-                  {geoFail ? '定位失败，请检查权限' : 'GPS 定位，精度 ±8 米'}
+                  {blocked ? '定位失败，请检查权限' : 'GPS 定位，精度 ±8 米'}
                 </span>
               </span>
               {locating ? (

@@ -125,3 +125,23 @@
     scroll-behavior: auto !important;
   }
 }
+
+/**
+ * 高德自带的 logo 与版权文字是 `position:absolute; z-index:10`，
+ * 会盖在底部玻璃卡片（DOM 顺序在它之后、无 z-index）上面。
+ * 不做 z-index 军备竞赛，改为把它们抬到卡片上沿之下的窄带里：
+ * 底部卡片 0–244px，待同步胶囊 264–300px，落点落在 246–262px。
+ * 桌面端没有底部卡片，贴回底边即可。
+ */
+#map-canvas .amap-logo,
+#map-canvas .amap-copyright {
+  bottom: 246px !important;
+}
+
+@media (min-width: 1024px) {
+  #map-canvas .amap-logo,
+  #map-canvas .amap-copyright {
+    bottom: 2px !important;
+  }
+}
+
