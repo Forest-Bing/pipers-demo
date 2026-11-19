@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { Crosshair, Info, TriangleAlert, Waves } from 'lucide-react'
+import { Info, TriangleAlert, Waves } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { KeypointType, MarkKind } from '@/lib/mock/types'
 
@@ -84,7 +84,7 @@ export function MarkPin({
   const color = kind === 'alert' ? '#FF3B30' : '#0A84FF'
   const height = Math.round((size * 32) / 24)
   const mark = glyph ?? kind
-  const Icon = mark === 'alert' ? TriangleAlert : mark === 'info' ? Info : Crosshair
+  const Icon = mark === 'alert' ? TriangleAlert : Info
   /** 只有「真正的警告标记」才做脉冲：自由落点不是告警，不该被误读成异常 */
   const isAlert = mark === 'alert'
 
@@ -128,11 +128,19 @@ export function MarkPin({
           className="absolute left-1/2 flex -translate-x-1/2 items-center justify-center text-white"
           style={{ top: size * 0.21, width: size * 0.5, height: size * 0.5 }}
         >
-          <Icon
-            size={size * 0.42}
-            strokeWidth={2.6}
-            className={isAlert ? 'animate-alert-pulse' : undefined}
-          />
+          {mark === 'free' ? (
+            /* 自由落点：只有一颗白圆点，和「选点」的语义一致，不借警告/信息符号 */
+            <i
+              className="rounded-full bg-white"
+              style={{ width: size * 0.28, height: size * 0.28 }}
+            />
+          ) : (
+            <Icon
+              size={size * 0.42}
+              strokeWidth={2.6}
+              className={isAlert ? 'animate-alert-pulse' : undefined}
+            />
+          )}
         </span>
       </span>
     </span>

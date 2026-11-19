@@ -67,15 +67,32 @@ export default function LoginPage() {
       </svg>
 
       <div className="relative z-10 mx-auto flex w-full max-w-[380px] flex-1 flex-col">
-        <header className="pt-[9vh] text-center">
+        <header className="pt-[10vh] text-center">
           <img
             src="/pipechina.svg"
             alt="国家管网"
-            className="mx-auto h-[58px] w-auto select-none"
+            className="mx-auto h-[40px] w-auto select-none"
             draggable={false}
           />
-          <h1 className="mt-5 text-[19px] font-semibold text-ink">管道巡检标记系统</h1>
-          <p className="mt-1.5 text-[12px] text-ink-2">国家管网 · 试点环境</p>
+          {/* 品牌线：双道波纹，接住 logo 与标题之间的一段留白 */}
+          <svg viewBox="0 0 64 22" className="mx-auto mt-4 h-[22px] w-[64px]" aria-hidden>
+            <path
+              d="M2 14 C 12 14, 12 6, 22 6 S 32 14, 42 14 S 52 6, 62 6"
+              fill="none"
+              stroke="#0A84FF"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+            />
+            <path
+              d="M2 19 C 12 19, 12 11, 22 11 S 32 19, 42 19 S 52 11, 62 11"
+              fill="none"
+              stroke="#0A84FF"
+              strokeOpacity="0.4"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          <h1 className="mt-2 text-[19px] font-semibold text-ink">管道巡检自由标记系统</h1>
         </header>
 
         <form onSubmit={submit} className="glass mt-7 p-5">

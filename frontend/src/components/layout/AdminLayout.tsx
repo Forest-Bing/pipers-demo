@@ -44,9 +44,12 @@ export function AdminLayout({ breadcrumb, children, padded = true }: AdminLayout
       {/* 左导航：240px 实色，不用玻璃 */}
       <aside className="flex w-[240px] shrink-0 flex-col border-r border-card-line bg-admin-nav">
         <div className="flex h-14 items-center gap-2 px-5">
-          <span className="flex size-7 items-center justify-center rounded-[8px] bg-info text-white">
-            <Waypoints size={15} strokeWidth={2} />
-          </span>
+          <img
+            src="/shape_logo.svg"
+            alt="国家管网"
+            className="h-7 w-auto shrink-0 select-none"
+            draggable={false}
+          />
           <span className="text-[13px] font-semibold text-ink">管道巡检管理后台</span>
         </div>
 
