@@ -1,28 +1,45 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { ChevronLeft, CircleCheck, RefreshCw, RotateCw } from 'lucide-react'
+import { ChevronLeft, CircleCheck, RefreshCw, RotateCw, Trash2 } from 'lucide-react'
 import { Avatar, Button, IconButton } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { useStore } from '@/lib/store'
 import { maskPhone } from '@/lib/format'
 import { activePipeline } from '@/lib/mock/pipelines'
 
-const SYNCED_COUNT = 12
-
 /** 画板 8「我的 / 设置」 */
 export default function MePage() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const { toast, marks } = useStore()
+  const { toast, marks, syncDrafts, resetDemo } = useStore()
+  const [syncing, setSyncing] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   const pending = marks.filter((m) => m.pending).length
+  const synced = marks.length - pending
 
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
   }
 
+  async function handleSync() {
+    setSyncing(true)
+    const count = await syncDrafts()
+    setSyncing(false)
+    if (count === null) return
+    toast(count > 0 ? `已同步 ${count} 条草稿` : '没有待同步的草稿', 'success')
+  }
+
+  async function handleReset() {
+    setResetting(true)
+    await resetDemo()
+    setResetting(false)
+    navigate('/')
+  }
+
   return (
-    <div className="min-h-[100dvh] overflow-y-auto bg-canvas px-4 pb-[calc(20px+env(safe-area-inset-bottom))] pt-[calc(12px+env(safe-area-inset-top))]">
+    <div className="min-h-[100dvh] overflow-y-auto bg-canvas px-4 pb-[calc(20px_+_env(safe-area-inset-bottom))] pt-[calc(12px_+_env(safe-area-inset-top))]">
       <header className="mb-4 flex items-center gap-1">
         <IconButton label="返回地图" onClick={() => navigate('/')} className="-ml-1">
           <ChevronLeft size={20} strokeWidth={1.9} />
@@ -57,7 +74,7 @@ export default function MePage() {
 
         <div className="mt-3 flex items-center gap-2 border-b border-hairline pb-2.5">
           <CircleCheck size={15} strokeWidth={2} className="text-success" />
-          <span className="text-[13px] text-ink">已同步 {SYNCED_COUNT} 条</span>
+          <span className="text-[13px] text-ink">已同步 {synced} 条</span>
         </div>
 
         <div className="flex items-center gap-2 pt-2.5">
@@ -66,9 +83,10 @@ export default function MePage() {
           <Button
             variant="secondary"
             size="sm"
+            loading={syncing}
             className="ml-auto h-7 px-2.5 text-[11px]"
             icon={<RotateCw size={12} strokeWidth={2} />}
-            onClick={() => toast('正在重试同步…', 'success')}
+            onClick={handleSync}
           >
             立即重试
           </Button>
@@ -85,6 +103,10 @@ export default function MePage() {
             <dd className="ml-auto font-mono text-ink">v1.0.0 · 试点</dd>
           </div>
           <div className="flex items-center">
+            <dt className="text-ink-2">所属单位</dt>
+            <dd className="ml-auto truncate pl-6 text-ink">{activePipeline.company}</dd>
+          </div>
+          <div className="flex items-center">
             <dt className="text-ink-2">当前管段</dt>
             <dd className="ml-auto truncate pl-6 text-ink">{activePipeline.name}</dd>
           </div>
@@ -98,6 +120,25 @@ export default function MePage() {
           <RefreshCw size={12} strokeWidth={2} className="mt-0.5 shrink-0" />
           本系统为试点演示环境，禁止录入真实生产数据
         </p>
+      </section>
+
+      {/* 演示数据：清空本地改动，回到种子数据 */}
+      <section className="glass mt-3 px-4 py-4">
+        <h2 className="text-[13px] font-semibold text-ink">演示数据</h2>
+        <p className="mt-1.5 text-[12px] leading-relaxed text-ink-2">
+          新增 / 编辑 / 删除的标记与用户都存在本机浏览器里。重置会清空这些改动，恢复 15
+          条标记、28 个用户与 60 个关键点。
+        </p>
+        <Button
+          variant="danger-outline"
+          size="sm"
+          loading={resetting}
+          icon={<Trash2 size={13} strokeWidth={2} />}
+          onClick={handleReset}
+          className="mt-2.5"
+        >
+          重置演示数据
+        </Button>
       </section>
 
       <p className="mt-4 text-center text-[10px] text-ink-2/70">

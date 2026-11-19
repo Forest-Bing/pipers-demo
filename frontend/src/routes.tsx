@@ -6,9 +6,11 @@ import MePage from '@/pages/MePage'
 import NewMarkPage from '@/pages/mark/NewMarkPage'
 import KeypointPickerPage from '@/pages/mark/KeypointPickerPage'
 import MarkDetailPage from '@/pages/mark/MarkDetailPage'
-import AdminPlaceholder from '@/pages/admin/AdminPlaceholder'
+import AdminOverviewPage from '@/pages/admin/OverviewPage'
 import UsersPage from '@/pages/admin/UsersPage'
 import MarksPage from '@/pages/admin/MarksPage'
+import KeypointsPage from '@/pages/admin/KeypointsPage'
+import AuditPage from '@/pages/admin/AuditPage'
 import { useAuth } from '@/lib/auth'
 
 /**
@@ -72,7 +74,7 @@ export const router = createBrowserRouter([
   // 管理后台
   {
     path: '/admin',
-    element: <Navigate to="/admin/users" replace />,
+    element: <Navigate to="/admin/overview" replace />,
   },
   {
     path: '/admin/users',
@@ -94,7 +96,7 @@ export const router = createBrowserRouter([
     path: '/admin/overview',
     element: (
       <Guard area="admin">
-        <AdminPlaceholder title="概览" breadcrumb={['系统管理', '概览']} />
+        <AdminOverviewPage />
       </Guard>
     ),
   },
@@ -102,7 +104,7 @@ export const router = createBrowserRouter([
     path: '/admin/keypoints',
     element: (
       <Guard area="admin">
-        <AdminPlaceholder title="关键点台账" breadcrumb={['系统管理', '关键点台账']} />
+        <KeypointsPage />
       </Guard>
     ),
   },
@@ -110,7 +112,7 @@ export const router = createBrowserRouter([
     path: '/admin/audit',
     element: (
       <Guard area="admin">
-        <AdminPlaceholder title="审计日志" breadcrumb={['系统管理', '审计日志']} />
+        <AuditPage />
       </Guard>
     ),
   },

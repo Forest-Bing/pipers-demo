@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, ShieldCheck, UserRound } from 'lucide-react'
 import { Button, SegmentedControl, TextField } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
-import { currentAdmin } from '@/lib/mock/users'
+import { DEMO_ACCOUNTS } from '@/lib/mock/users'
+import { ApiError } from '@/lib/api'
 
 type LoginMode = 'user' | 'admin'
 
@@ -16,29 +17,48 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
   const [errors, setErrors] = useState<{ phone?: string; password?: string }>({})
+  const [formError, setFormError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const isAdmin = mode === 'admin'
 
   function switchMode(next: LoginMode) {
     setMode(next)
     setErrors({})
+    setFormError('')
     setPassword('')
   }
 
-  function submit(e: FormEvent) {
+  /** 点测试账号：自动切页签并填好手机号 / 密码 */
+  function fillDemo(next: LoginMode) {
+    const account = next === 'admin' ? DEMO_ACCOUNTS.admin : DEMO_ACCOUNTS.user
+    setMode(next)
+    setPhone(account.phone)
+    setPassword(account.password)
+    setErrors({})
+    setFormError('')
+  }
+
+  async function submit(e: FormEvent) {
     e.preventDefault()
     const next: typeof errors = {}
     if (!/^\d{11}$/.test(phone)) next.phone = '请输入 11 位手机号'
-    // 演示期角色由手机号判定：管理员页签必须用管理员账号，用户页签不接受管理员账号
-    else if (isAdmin && phone !== currentAdmin.phone) next.phone = '该手机号不是管理员账号'
-    else if (!isAdmin && phone === currentAdmin.phone) next.phone = '该手机号是管理员账号，请切换到管理员登录'
     if (password.length < 6) next.password = '密码至少 6 位'
     setErrors(next)
+    setFormError('')
     if (Object.keys(next).length > 0) return
 
-    // TODO: POST /api/auth/login { phone, password, role }
-    const user = login(phone, isAdmin ? 'admin' : 'user')
-    navigate(user.role === 'admin' ? '/admin/users' : '/', { replace: true })
+    setLoading(true)
+    try {
+      // TODO 已就位：换成真实接口后此处逻辑不变，mock API 内部走 localStorage
+      const user = await login(phone, password, isAdmin ? 'admin' : 'user')
+      navigate(user.role === 'admin' ? '/admin/users' : '/', { replace: true })
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : '登录失败，请稍后重试'
+      setFormError(message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -143,21 +163,60 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button type="submit" block size="lg" className="mt-5 rounded-[14px]">
+          {formError ? (
+            <p role="alert" className="mt-3 rounded-[8px] bg-alert/[0.08] px-2.5 py-2 text-[12px] text-alert">
+              {formError}
+            </p>
+          ) : null}
+
+          <Button type="submit" block size="lg" loading={loading} className="mt-5 rounded-[14px]">
             {isAdmin ? '进入管理后台' : '登录'}
           </Button>
         </form>
 
-        <p className="mt-4 text-center text-[11px] leading-relaxed text-ink-2">
-          {isAdmin ? '管理员账号由运维统一分配，如需开通请联系系统管理员' : '账号由管理员统一创建，如需开通请联系管道部门管理员'}
-        </p>
+        {/* 测试版说明：把可用账号直接摊开，点一下就自动填好，省去记密码 */}
+        <section className="mt-4 rounded-[14px] border border-info/20 bg-white/70 px-3.5 py-3">
+          <h2 className="flex items-center gap-1.5 text-[12px] font-medium text-info">
+            <ShieldCheck size={13} strokeWidth={2} />
+            测试版说明
+          </h2>
+          <p className="mt-1 text-[11px] leading-relaxed text-ink-2">
+            当前为演示环境，数据均为模拟数据。普通账号初始密码统一为 123456，管理员为
+            admin123；点击下方账号可自动填入。
+          </p>
 
-        {/* 演示辅助：说明如何切换角色，正式环境删除 */}
-        <p className="mt-2 text-center text-[10px] text-ink-2/70">
-          演示：{currentAdmin.phone} 为管理员账号，其他手机号为巡线员
-        </p>
+          <div className="mt-2 flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => fillDemo('user')}
+              className="flex items-center gap-2 rounded-[8px] px-2 py-1.5 text-left transition-colors duration-240 hover:bg-info/[0.06]"
+            >
+              <UserRound size={13} strokeWidth={1.9} className="shrink-0 text-info" />
+              <span className="text-[11px] text-ink">
+                巡线员 · {DEMO_ACCOUNTS.user.name}
+              </span>
+              <span className="ml-auto font-mono text-[11px] text-ink-2">
+                {DEMO_ACCOUNTS.user.phone} / {DEMO_ACCOUNTS.user.password}
+              </span>
+            </button>
 
-        <p className="mt-auto pb-[calc(16px_+_env(safe-area-inset-bottom))] pt-8 text-center text-[10px] text-ink-2/70">
+            <button
+              type="button"
+              onClick={() => fillDemo('admin')}
+              className="flex items-center gap-2 rounded-[8px] px-2 py-1.5 text-left transition-colors duration-240 hover:bg-info/[0.06]"
+            >
+              <ShieldCheck size={13} strokeWidth={1.9} className="shrink-0 text-alert" />
+              <span className="text-[11px] text-ink">
+                管理员 · {DEMO_ACCOUNTS.admin.name}
+              </span>
+              <span className="ml-auto font-mono text-[11px] text-ink-2">
+                {DEMO_ACCOUNTS.admin.phone} / {DEMO_ACCOUNTS.admin.password}
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <p className="mt-auto pb-[calc(16px_+_env(safe-area-inset-bottom))] pt-6 text-center text-[10px] text-ink-2/70">
           v1.0 · 试点
         </p>
       </div>

@@ -1,8 +1,8 @@
 import { Footprints } from 'lucide-react'
-import type { MarkItem } from '@/lib/mock-marks'
+import type { Mark } from '@/lib/mock/types'
 import { cn } from '@/lib/cn'
 
-export default function MarkCard({ mark }: { mark: MarkItem }) {
+export default function MarkCard({ mark }: { mark: Mark }) {
   return (
     <article className="w-[164px] shrink-0 rounded-[14px] border border-hairline bg-white/85 p-3">
       <div className="flex items-center gap-1.5">

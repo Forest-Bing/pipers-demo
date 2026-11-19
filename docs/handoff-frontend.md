@@ -189,7 +189,7 @@ formatCount(n: number): string         // '99+'（>99）
 ### 4.4 布局壳
 
 - `MobileShell`：`h-[100dvh]` + 顶部 44px 导航栏（left / title / right 三槽）+ 内容区 + `pb-[env(safe-area-inset-bottom)]`
-- `AdminLayout`：240px 左导航（`bg-admin-nav`，实色，**不用玻璃**）+ 顶栏（面包屑 + 搜索 + 铃铛 + 头像）+ 内容区 `bg-canvas`。导航项「概览 / 用户管理 / 标记管理 / 关键点台账 / 审计日志」，未实现的点进 `EmptyState`
+- `AdminLayout`：240px 左导航（`bg-admin-nav`，实色，**不用玻璃**）+ 顶栏（面包屑 + 搜索 + 铃铛 + 头像）+ 内容区 `bg-canvas`。导航项「概览 / 用户管理 / 标记管理 / 关键点台账 / 审计日志」，五项均已实现
 
 ### 4.5 路由与角色
 
@@ -202,6 +202,9 @@ formatCount(n: number): string         // '99+'（>99）
 /me                    MePage              ✅
 /admin/users           UsersPage           ✅ B5
 /admin/marks           MarksPage           ✅ B6
+/admin/overview        OverviewPage        ✅ B7
+/admin/keypoints       KeypointsPage       ✅ B7
+/admin/audit           AuditPage           ✅ B7
 ```
 
 `useAuth()` 返回 `{ user, role, login, logout }`，存 localStorage（key `pipe.session`）。
@@ -471,8 +474,10 @@ formatCount(n: number): string         // '99+'（>99）
 | B4 | 标记详情（画板 6） | ✅ |
 | B5 | 用户管理 + 新建用户（画板 10、12） | ✅ |
 | B6 | 标记管理 + 抽屉（画板 11） | ✅ |
+| B7 | 概览 / 关键点台账 / 审计日志（后台剩余三页） | ✅ |
 
-**7 屏全部完成，本轮批次表已清空。** 剩余工作见 §7.3。
+**7 屏 + 后台三页全部完成。** 剩余工作见 §7.3。
+
 ### 7.1 B1 / B2 落地记录（2026-11-19）
 
 新增文件：
@@ -609,9 +614,23 @@ formatCount(n: number): string         // '99+'（>99）
 ### 7.5 仍未做
 
 - 高德自定义地图样式 ID（`VITE_AMAP_STYLE_ID`）待控制台调色（当前用默认样式）
-- 管道线图层未画（mock 只有 `pipelineId`，没有几何数据）
 - mock → 真实接口（各页已按 §3 留 `// TODO:` 注释）
 - `MePage.tsx` 的安全区 padding 旧写法（见 `docs/ui-notes.md` §7）
+
+### 7.6 B7 后台三页 + 地图卸载修复（2026-11-20）
+
+| 文件 | 作用 |
+| --- | --- |
+| `src/pages/admin/OverviewPage.tsx` | 概览：4 张 StatCard + 近 7 日堆叠柱 + 标记构成环形图 + 关键点构成 + 最近动态（取审计前 6 条） |
+| `src/pages/admin/KeypointsPage.tsx` | 关键点台账：类型统计、编号/名称搜索、类型筛选、按桩号排序、关联标记抽屉 |
+| `src/pages/admin/AuditPage.tsx` | 审计日志：今日/账号/删除停用统计、动作筛选、关键字、日期范围、分页 |
+| `src/lib/audit.ts` | 审计动作的中文名 / 徽标配色 / 对象名映射，概览与审计页共用 |
+
+- 数据来源：概览与台账走 `keypointsApi.list()` / `auditApi.list()`；标记与用户仍读 `useStore()`，标记增删后台账的「关联标记」数会实时变化。
+- 页面不引图表库：趋势图用「绝对高度 div 堆叠」，环形图用 `conic-gradient`，避免为两个小图加依赖。
+- **修复地图页崩溃**：`PipelineLayer` 卸载时若地图已 `destroy()`，`map.remove()` 抛 `Cannot read properties of undefined (reading 'remove')`。改为逐条 `line.setMap(null)` 且整体 try/catch，`map.add` 也加了保护。验证方式：容器页里 `history.pushState` + `dispatchEvent(PopStateEvent)` 触发真实前端跳转，再读 iframe 的 error 计数（0 即通过）。
+- 产品名统一为「管道巡检自由标记系统」（`index.html` title、后台侧栏、桌面侧栏）。
+- `/admin` 默认重定向由 `/admin/users` 改为 `/admin/overview`；登录后落地页仍是 `/admin/users`（PRD D5）。
 
 ---
 

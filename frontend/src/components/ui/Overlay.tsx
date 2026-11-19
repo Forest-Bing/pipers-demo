@@ -160,7 +160,7 @@ export function Modal({
           aria-modal="true"
           style={{ width }}
           className={cn(
-            'relative max-h-[calc(100dvh-48px)] overflow-y-auto rounded-card-lg bg-white shadow-glass',
+            'relative max-h-[calc(100dvh_-_48px)] overflow-y-auto rounded-card-lg bg-white shadow-glass',
             'transition-all duration-240 ease-glass',
             visible ? 'scale-100 opacity-100' : 'scale-[0.97] opacity-0',
             className,

@@ -23,7 +23,7 @@ const COLUMNS = ['姓名', '职位', '手机号', '角色', '状态', '创建时
 
 /** 画板 10「管理后台 · 用户管理」 */
 export default function UsersPage() {
-  const { users, updateUser, toast } = useStore()
+  const { users, updateUser, resetUserPassword, toast } = useStore()
   const { user: me } = useAuth()
 
   const [keyword, setKeyword] = useState('')
@@ -79,11 +79,11 @@ export default function UsersPage() {
     setFormOpen(true)
   }
 
-  const confirmStatus = () => {
+  const confirmStatus = async () => {
     if (!statusTarget) return
     const next: UserStatus = statusTarget.status === 'active' ? 'disabled' : 'active'
-    // TODO: PATCH /api/admin/users/:id { status }
-    updateUser(statusTarget.id, { status: next })
+    const updated = await updateUser(statusTarget.id, { status: next })
+    if (!updated) return
     toast(next === 'disabled' ? '账号已停用' : '账号已启用')
     setStatusTarget(null)
   }
@@ -278,9 +278,11 @@ export default function UsersPage() {
             </Button>
             <Button
               size="sm"
-              onClick={() => {
-                // TODO: POST /api/admin/users/:id/reset-password
-                toast('密码已重置', 'success')
+              onClick={async () => {
+                if (!resetTarget) return
+                const password = await resetUserPassword(resetTarget.id)
+                if (!password) return
+                toast(`密码已重置：${password}`, 'success')
                 setResetTarget(null)
               }}
             >

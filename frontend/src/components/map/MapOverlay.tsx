@@ -6,6 +6,7 @@ import { KEYPOINT_TYPE_LABEL, type Keypoint } from '@/lib/mock/types'
 import { useStore } from '@/lib/store'
 import {
   useCurrentLocation,
+  useKindFilter,
   useMapInstance,
   useMapSize,
   useMapTick,
@@ -53,6 +54,7 @@ export default function MapOverlay() {
   const tick = useMapTick()
   const navigate = useNavigate()
   const { marks, toast } = useStore()
+  const [kindFilter] = useKindFilter()
   const here = useCurrentLocation()
   const hostRef = useRef<HTMLDivElement>(null)
 
@@ -88,6 +90,7 @@ export default function MapOverlay() {
     // —— 标记：始终显示独立图钉（量级是「当天现场记录」，不会到聚合的量级）
     const pins: ProjectedMark[] = []
     for (const mark of marks) {
+      if (kindFilter !== 'all' && mark.kind !== kindFilter) continue
       const p = project(mark.lng, mark.lat)
       if (!visible(p.x, p.y)) continue
       pins.push({ id: mark.id, kind: mark.kind, title: mark.title, x: Math.round(p.x), y: Math.round(p.y) })
@@ -128,7 +131,7 @@ export default function MapOverlay() {
 
     return { pins, clusters, here: herePoint }
     // tick 只是「视图变了」的信号，参与依赖以触发重算
-  }, [map, w, h, marks, here, tick])
+  }, [map, w, h, marks, here, kindFilter, tick])
 
   // 容器始终挂载：`ownsMap` 要靠它的父节点判断归属，不能提前 return
   const zoomToCluster = (c: ProjectedCluster) => {

@@ -1,18 +1,35 @@
 import { Search, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router'
+import { useMemo } from 'react'
 import { useAuth } from '@/lib/auth'
-import { marks } from '@/lib/mock-marks'
+import { useStore } from '@/lib/store'
+import { MAP_CENTER } from '@/lib/amap'
+import { distanceMeters } from '@/lib/geo'
 import { cn } from '@/lib/cn'
-
-const filters = [
-  { key: 'all', label: '全部', count: 7, active: true },
-  { key: 'alert', label: '警告', count: 3, dot: 'bg-alert' },
-  { key: 'info', label: '信息', count: 4, dot: 'bg-info' },
-]
 
 export default function Sidebar() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { marks } = useStore()
+
+  /** 「附近标记」按直线距离从近到远 */
+  const nearby = useMemo(
+    () =>
+      [...marks].sort(
+        (a, b) =>
+          distanceMeters(MAP_CENTER, [a.lng, a.lat]) - distanceMeters(MAP_CENTER, [b.lng, b.lat]),
+      ),
+    [marks],
+  )
+
+  const filters = useMemo(
+    () => [
+      { key: 'all', label: '全部', count: marks.length, active: true },
+      { key: 'alert', label: '警告', count: marks.filter((m) => m.kind === 'alert').length, dot: 'bg-alert' },
+      { key: 'info', label: '信息', count: marks.filter((m) => m.kind === 'info').length, dot: 'bg-info' },
+    ],
+    [marks],
+  )
 
   return (
     <aside className="relative flex h-full w-[380px] shrink-0 flex-col rounded-r-[24px] bg-white/75 shadow-glass backdrop-blur-glass backdrop-saturate-glass">
@@ -25,10 +42,8 @@ export default function Sidebar() {
           draggable={false}
         />
         <div className="min-w-0">
-          <h1 className="truncate text-[13px] font-semibold text-ink">
-            国家管网 · 管道工标记
-          </h1>
-          <p className="truncate text-[10px] text-ink-2">巡检标记与告警同步</p>
+          <h1 className="truncate text-[13px] font-semibold text-ink">管道巡检自由标记系统</h1>
+          <p className="truncate text-[10px] text-ink-2">国家管网 · 中俄东线山东段</p>
         </div>
       </header>
 
@@ -57,11 +72,11 @@ export default function Sidebar() {
 
       <div className="mb-1 mt-4 flex items-baseline px-5">
         <span className="text-[12px] text-ink-2">附近标记</span>
-        <span className="ml-auto text-[11px] text-ink-2">共 7 条 · 按距离</span>
+        <span className="ml-auto text-[11px] text-ink-2">共 {marks.length} 条 · 按距离</span>
       </div>
 
       <ul className="min-h-0 flex-1 overflow-y-auto px-5">
-        {marks.map((mark) => (
+        {nearby.map((mark) => (
           <li
             key={mark.id}
             className="flex gap-3 border-b border-hairline py-3 last:border-0"

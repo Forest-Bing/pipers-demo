@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import MapBackdrop from './MapBackdrop'
+import PipelineLayer from './PipelineLayer'
 import { AMAP_STYLE_ID, MAP_CENTER, MAP_ZOOM, loadAMap } from '@/lib/amap'
 import { clearMapInstance, notifyViewChange, setMapInstance, setMapSize } from '@/lib/map-runtime'
 import { cn } from '@/lib/cn'
@@ -105,6 +106,9 @@ export default function MapCanvas() {
       </div>
 
       <div ref={holder} id="map-canvas" className="absolute inset-0" aria-label="地图" />
+
+      {/* 管道线直接交给高德画（跟着瓦片走不抖），标记与关键点仍是上层的 React 覆盖物 */}
+      <PipelineLayer />
     </div>
   )
 }

@@ -21,7 +21,7 @@ import { cn } from '@/lib/cn'
 export default function MarkDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { marks, removeMark, toast } = useStore()
+  const { marks, deleteMark, toast } = useStore()
   const { user } = useAuth()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -47,9 +47,9 @@ export default function MarkDetailPage() {
   // 铁律 9：非本人创建的标记不显示「编辑」「删除」
   const isOwner = mark.creatorId === (user?.id ?? 'u-zhang')
 
-  const handleDelete = () => {
-    // TODO: DELETE /api/marks/:id
-    removeMark(mark.id)
+  const handleDelete = async () => {
+    const ok = await deleteMark(mark.id)
+    if (!ok) return
     setConfirmOpen(false)
     toast('标记已删除')
     navigate('/')

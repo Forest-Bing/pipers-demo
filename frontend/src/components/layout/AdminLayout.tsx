@@ -50,7 +50,7 @@ export function AdminLayout({ breadcrumb, children, padded = true }: AdminLayout
             className="h-7 w-auto shrink-0 select-none"
             draggable={false}
           />
-          <span className="text-[13px] font-semibold text-ink">管道巡检管理后台</span>
+          <span className="truncate text-[13px] font-semibold text-ink">管道巡检自由标记系统</span>
         </div>
 
         <nav className="mt-2 flex flex-col gap-0.5 px-3">

@@ -1,6 +1,7 @@
 import { ChevronDown, Layers, Locate, Minus, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import MapCanvas from '@/components/map/MapCanvas'
+import { activePipeline } from '@/lib/mock/pipelines'
 import MapOverlay from '@/components/map/MapOverlay'
 import ZoomHint from '@/components/map/ZoomHint'
 import Sidebar from '@/components/desktop/Sidebar'
@@ -48,7 +49,7 @@ export default function MapPageDesktop({ showZoomHint = false }: { showZoomHint?
           type="button"
           className="glass absolute left-4 top-3 flex h-11 items-center gap-2 px-4 text-[13px] text-ink"
         >
-          西气东输二线 · 中卫—靖边段
+          {activePipeline.name}
           <ChevronDown size={14} strokeWidth={2} className="text-ink-2" />
         </button>
 

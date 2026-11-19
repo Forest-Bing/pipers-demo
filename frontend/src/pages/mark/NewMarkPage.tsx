@@ -13,14 +13,14 @@ import {
 } from '@/components/ui'
 import LandingPointSheet, { type LandingChoice } from '@/components/map/LandingPointSheet'
 import { useStore } from '@/lib/store'
-import { useAuth } from '@/lib/auth'
+import { MAP_CENTER } from '@/lib/amap'
 import { findKeypoint } from '@/lib/mock/keypoints'
-import { KEYPOINT_TYPE_LABEL, type Mark, type MarkKind } from '@/lib/mock/types'
-import { formatLngLat, formatTime } from '@/lib/format'
+import { KEYPOINT_TYPE_LABEL, type MarkKind } from '@/lib/mock/types'
+import { formatLngLat } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
 /** 画板 5 的示例文案，作为描述默认值（计数器按实际长度实时算，不硬编码） */
-const DEFAULT_DESC = 'K12+300 处管线上方发现第三方施工取土，已现场制止并拍照留证'
+const DEFAULT_DESC = 'K318+600 处管线上方发现第三方施工取土，已现场制止并拍照留证'
 
 /** 现场照片占位：渐变色块，避免引入真人照片 */
 const PHOTO_POOL = [
@@ -32,15 +32,14 @@ const PHOTO_POOL = [
 ]
 const INITIAL_PHOTOS = PHOTO_POOL.slice(0, 4)
 const DEFAULT_AUDIO = 37
-const DEFAULT_LNG = 106.2718
-const DEFAULT_LAT = 37.5421
+const DEFAULT_LNG = MAP_CENTER[0]
+const DEFAULT_LAT = MAP_CENTER[1]
 
 /** 画板 5「添加标记 · 表单」。路由 /mark/new，可带 ?lng=&lat=&src=&keypointId=；带 ?edit=<id> 时为编辑态 */
 export default function NewMarkPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const { marks, addMark, updateMark, toast } = useStore()
-  const { user } = useAuth()
+  const { marks, createMark, updateMark, saveDraft, toast } = useStore()
 
   const editId = params.get('edit') ?? undefined
   const editing = editId ? marks.find((m) => m.id === editId) : undefined
@@ -88,51 +87,54 @@ export default function NewMarkPage() {
     setPhotos((list) => [...list, PHOTO_POOL[list.length % PHOTO_POOL.length]])
   }
 
-  const submit = () => {
+  const submit = async () => {
     if (!canSubmit) return
     setSubmitting(true)
-    const now = new Date()
-    const base = {
+
+    const payload = {
       kind,
       lng,
       lat,
-      title: keypoint ? `${keypoint.code} · ${KEYPOINT_TYPE_LABEL[keypoint.type]}` : '手动落点',
       description: desc.trim(),
       keypointId: keypoint?.id,
       photos,
       audio: audio === null ? undefined : { duration: audio },
     }
 
-    // 编辑态：只回写内容字段，创建人与创建时间保持不变
+    // 编辑态：只回写内容字段，创建人与创建时间由 mock API 保持不变
     if (editing) {
-      // TODO: PATCH /api/marks/:id
-      updateMark(editing.id, base)
-      toast('标记已保存', 'success')
+      const saved = await updateMark(editing.id, payload)
       setSubmitting(false)
-      navigate(`/marks/${editing.id}`)
+      if (saved) {
+        toast('标记已保存', 'success')
+        navigate(`/marks/${editing.id}`)
+      }
       return
     }
 
-    const mark: Mark = {
-      id: `m-${now.getTime()}`,
-      ...base,
-      distance: '0m',
-      time: formatTime(now),
-      creatorId: user?.id ?? 'u-zhang',
-      creatorName: user?.name ?? '张建国',
-      creatorPosition: user?.position ?? '巡线工',
-      createdAt: now.toISOString(),
+    // 创建态：标题、创建人、时间都由 mock API 根据「当前登录人」生成
+    const created = await createMark(payload)
+    setSubmitting(false)
+    if (created) {
+      toast('标记已提交', 'success')
+      navigate('/')
     }
-    // TODO: POST /api/marks，成功后用服务端返回的 id 替换本地 id
-    addMark(mark)
-    toast('标记已提交', 'success')
-    navigate('/')
   }
 
-  const saveDraft = () => {
-    // TODO: POST /api/marks/drafts，弱网时入本地队列
-    toast('已存为草稿，待同步 +1')
-    navigate('/')
+  const handleDraft = async () => {
+    const ok = await saveDraft({
+      kind,
+      lng,
+      lat,
+      description: desc.trim(),
+      keypointId: keypoint?.id,
+      photos,
+      audio: audio === null ? undefined : { duration: audio },
+    })
+    if (ok) {
+      toast('已存为草稿，待同步 +1')
+      navigate('/')
+    }
   }
 
   const leave = () => {
@@ -279,7 +281,7 @@ export default function NewMarkPage() {
       {/* 底部固定玻璃操作条 */}
       <div className="glass-bar fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-hairline px-4 pb-[calc(12px_+_env(safe-area-inset-bottom))] pt-3">
         {editing ? null : (
-          <TextButton tone="muted" onClick={saveDraft} className="shrink-0">
+          <TextButton tone="muted" onClick={handleDraft} className="shrink-0">
             存为草稿
           </TextButton>
         )}

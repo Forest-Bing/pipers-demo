@@ -16,8 +16,8 @@ const KEY = (import.meta.env.VITE_AMAP_KEY ?? '').trim()
 const SECURITY = (import.meta.env.VITE_AMAP_SECURITY_CODE ?? '').trim()
 export const AMAP_STYLE_ID = (import.meta.env.VITE_AMAP_STYLE_ID ?? '').trim()
 
-/** 演示基准点：甘肃张掖一带，与 mock 数据同源 */
-export const MAP_CENTER: [number, number] = [106.2718, 37.5421]
+/** 演示基准点：济南市历下区 / 市中区交界，与 mock 数据（中俄东线山东段）同源 */
+export const MAP_CENTER: [number, number] = [117.0555, 36.6545]
 export const MAP_ZOOM = 15
 
 /** Key 与安全密钥都齐了才认为可以加载 */

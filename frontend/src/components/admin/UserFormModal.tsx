@@ -82,37 +82,22 @@ export default function UserFormModal({ open, onClose, editing, selfId }: UserFo
     }
   }
 
-  const submit = () => {
+  const submit = async () => {
     setTouched(true)
     if (!name.trim() || !/^1\d{10}$/.test(phone) || phoneTaken) return
     if (!editing && !password) return
 
     setLoading(true)
-    // 演示用 300ms 提交中状态
-    window.setTimeout(() => {
-      if (editing) {
-        // TODO: PATCH /api/admin/users/:id
-        updateUser(editing.id, { name: name.trim(), phone, position, role })
-        toast('账号已更新', 'success')
-      } else {
-        // TODO: POST /api/admin/users，初始密码由服务端生成并仅返回一次
-        const user: User = {
-          id: `u-${Date.now()}`,
-          name: name.trim(),
-          phone,
-          position,
-          role,
-          status: 'active',
-          createdBy: selfId,
-          createdAt: new Date().toISOString(),
-        }
-        addUser(user)
-        toast('账号已创建', 'success')
-      }
-      setLoading(false)
-      reset()
-      onClose()
-    }, 300)
+    // 创建 / 更新都走 mock API：唯一性校验、审计日志由它负责
+    const saved = editing
+      ? await updateUser(editing.id, { name: name.trim(), phone, position, role })
+      : await addUser({ name: name.trim(), phone, position, role, password })
+    setLoading(false)
+    if (!saved) return
+
+    toast(editing ? '账号已更新' : '账号已创建', 'success')
+    reset()
+    onClose()
   }
 
   return (

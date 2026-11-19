@@ -18,7 +18,7 @@ import { cn } from '@/lib/cn'
 
 /** 画板 11「管理后台 · 标记管理 + 详情抽屉」 */
 export default function MarksPage() {
-  const { marks, removeMark, toast } = useStore()
+  const { marks, deleteMark, toast } = useStore()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -29,9 +29,9 @@ export default function MarksPage() {
     setConfirmDelete(false)
   }
 
-  const handleDelete = (id: string) => {
-    // TODO: DELETE /api/marks/:id，并写入审计日志
-    removeMark(id)
+  const handleDelete = async (id: string) => {
+    const ok = await deleteMark(id)
+    if (!ok) return
     closeDrawer()
     toast('标记已删除')
   }

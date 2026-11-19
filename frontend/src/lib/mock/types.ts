@@ -27,6 +27,11 @@ export interface User {
   status: UserStatus
   createdBy?: string
   createdAt: string
+  /**
+   * 仅 mock 层使用：真实实现里是服务端 `password_hash`，永远不出现在响应体里。
+   * 演示期用明文放在 localStorage 的 mock 数据库里，方便登录页给出测试账号。
+   */
+  password?: string
 }
 
 /** 三种关键点。keypointTypeLabel 用于展示，图标用 KeypointIcon 组件 */
@@ -41,7 +46,7 @@ export const KEYPOINT_TYPE_LABEL: Record<KeypointType, string> = {
 export interface Keypoint {
   id: string
   type: KeypointType
-  /** 如 'JMZ-0421' */
+  /** 如 'SD-ZED-1042' */
   code: string
   name: string
   lng: number
@@ -69,7 +74,7 @@ export interface Mark {
   kind: MarkKind
   lng: number
   lat: number
-  /** 关键点编号 + 名称，如「JMZ-0421 · 3# 阀室」 */
+  /** 关键点编号 + 名称，如「SD-ZED-1021 · 3# 阀室」 */
   title: string
   description: string
   /** 派生字段，展示用：'120m' */
@@ -96,6 +101,10 @@ export interface Pipeline {
   id: string
   code: string
   name: string
+  /** 所属单位，展示用 */
+  company?: string
+  /** 管段几何（GCJ-02 顶点串），地图上直接连线渲染 */
+  path: [number, number][]
 }
 
 /** 地图端筛选只允许按类型 */
@@ -103,3 +112,16 @@ export type KindFilter = 'all' | MarkKind
 
 /** 关键点选择器的类型筛选（多一个「全部」） */
 export type KeypointFilter = 'all' | KeypointType
+
+/** 写操作审计日志（PRD §4.1 audit_logs） */
+export interface AuditLog {
+  id: string
+  actorId: string
+  actorName: string
+  action: 'create' | 'update' | 'delete' | 'login' | 'logout' | 'reset_password' | 'disable' | 'enable'
+  targetType: 'mark' | 'user' | 'keypoint'
+  targetId: string
+  /** 变更摘要，真实实现为 jsonb 快照 */
+  detail: string
+  createdAt: string
+}

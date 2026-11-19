@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import type { KindFilter } from './mock/types'
 
 /**
  * 地图运行时状态（不是业务数据，不进 store.tsx）。
@@ -158,4 +159,29 @@ export function useSelectMode(): [boolean, (next: boolean) => void] {
     () => false,
   )
   return [value, setSelectMode]
+}
+
+/**
+ * 标记类型筛选（全部 / 仅看警告）。
+ * 放在地图运行时而不是 store：它只影响地图图层的显示，不改变业务数据。
+ */
+let kindFilter: KindFilter = 'all'
+const filterListeners = new Set<() => void>()
+
+export function setKindFilter(next: KindFilter) {
+  if (kindFilter === next) return
+  kindFilter = next
+  filterListeners.forEach((fn) => fn())
+}
+
+function subscribeFilter(fn: () => void) {
+  filterListeners.add(fn)
+  return () => {
+    filterListeners.delete(fn)
+  }
+}
+
+export function useKindFilter(): [KindFilter, (next: KindFilter) => void] {
+  const value = useSyncExternalStore(subscribeFilter, () => kindFilter, () => 'all' as KindFilter)
+  return [value, setKindFilter]
 }
